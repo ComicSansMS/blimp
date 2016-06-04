@@ -1,0 +1,9 @@
+[submodule "external/cryptopp"]
+	path = external/cryptopp
+	url = https://github.com/weidai11/cryptopp
+[submodule "external/aws-sdk-cpp"]
+	path = external/aws-sdk-cpp
+	url = https://github.com/aws/aws-sdk-cpp
+[submodule "external/GSL"]
+	path = external/GSL
+	url = https://github.com/Microsoft/GSL
