@@ -1,6 +1,8 @@
 if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/aws-sdk-cpp/CMakeLists.txt)
     message(FATAL_ERROR "AWS SDK build file not found; Did you remember to fetch the submodules? (git submodule update --init)")
 endif()
+set(BUILD_ONLY glacier)
+set(STATIC_LINKING "1")
 add_subdirectory(aws-sdk-cpp)
 
 if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/cryptopp/CMakeLists.txt)
