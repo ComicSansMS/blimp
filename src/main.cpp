@@ -9,9 +9,12 @@
 #include <rijndael.h>
 #include <aes.h>
 
+#pragma warning(push)
+#pragma warning(disable: 4242)
 #include <QApplication>
 
 #include <ui/main_window.hpp>
+#pragma warning(pop)
 
 int main(int argc, char* argv[])
 {
@@ -27,18 +30,6 @@ int main(int argc, char* argv[])
     sqlite3_initialize();
 
     QApplication the_app(argc, argv);
-
-    //QMainWindow main_window;
-    //main_window.show();
-    //QTreeView view(&main_window);
-    /*
-    QTreeWidget widg;
-    widg.show();
-
-    auto fs_model = new QFileSystemModel();
-    fs_model->setRootPath("D:");
-    widg.setModel(fs_model);
-    */
 
     MainWindow main_window;
 
