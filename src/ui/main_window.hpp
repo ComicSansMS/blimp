@@ -3,8 +3,9 @@
 
 #include <QMainWindow>
 
-#include <QTreeView>
 #include <QBoxLayout>
+#include <QPushButton>
+#include <QTreeView>
 #include <QWidget>
 
 class MainWindow : public QMainWindow
@@ -20,4 +21,5 @@ private:
     QTreeView* m_treeview;
     FileSystemModel* m_model;
     QBoxLayout* m_layout;
+    QPushButton* m_okButton;
 };

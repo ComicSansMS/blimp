@@ -29,6 +29,13 @@ public:
 public slots:
      void itemClicked(QModelIndex const& index);
 
+private slots:
+    void onNewRow(QModelIndex const& parent, int start, int end);
+
+private:
+    void propagateCheckChangeDown(QModelIndex const& node_index, Qt::CheckState new_state);
+    void propagateCheckChangeUp(QModelIndex const& node_index, Qt::CheckState new_state);
+
 private:
     std::unordered_map<QModelIndex, Qt::CheckState> m_checkMap;
 };
