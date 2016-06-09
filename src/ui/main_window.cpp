@@ -1,5 +1,8 @@
 
 #include <ui/main_window.hpp>
+#include <db/blimpdb.hpp>
+
+#include <QFileDialog>
 
 MainWindow::MainWindow()
     :m_central(new QWidget(this)), m_treeview(new QTreeView), m_model(new FileSystemModel(this)),
@@ -30,6 +33,7 @@ MainWindow::~MainWindow()
 void MainWindow::onButtonClicked()
 {
     auto const checked_files = m_model->getCheckedFilePaths();
-    for(auto& f : checked_files) {
-    }
+    auto const target_file = QFileDialog::getSaveFileName(this, "Save File Database", QString(),
+                                                          "Blimp Database File (*.blimpdb)");
+    BlimpDB::createNewFileDatabase(target_file.toUtf8().constData(), checked_files);
 }
