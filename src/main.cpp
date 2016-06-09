@@ -4,6 +4,9 @@
 
 #include <sqlite3.h>
 
+#include <gbBase/Log.hpp>
+#include <gbBase/LogHandlers.hpp>
+
 #include <gsl.h>
 
 #include <rijndael.h>
@@ -18,6 +21,9 @@
 
 int main(int argc, char* argv[])
 {
+    Ghulbus::Log::initializeLogging();
+    Ghulbus::Log::setLogHandler(Ghulbus::Log::Handlers::logToWindowsDebugger);
+    Ghulbus::Log::setLogLevel(Ghulbus::LogLevel::Trace);
     CryptoPP::AESEncryption aes_encrypt;
     byte key[] = { 'C', 'O', 'O', 'L', 'K', 'E', 'Y', '!' };
     aes_encrypt.SetKey(key, sizeof(key));

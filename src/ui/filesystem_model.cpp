@@ -1,6 +1,7 @@
 #include <ui/filesystem_model.hpp>
 
-#include <cassert>
+#include <gbBase/Assert.hpp>
+#include <gbBase/Log.hpp>
 
 
 FileSystemModel::FileSystemModel(QObject* parent)
@@ -93,7 +94,7 @@ std::vector<QModelIndex> FileSystemModel::getChildren(QModelIndex const& node_in
     children.reserve(nChildren);
     for(int i=0; i<nChildren; ++i) {
         auto const node_child = index(i, 0, node_index);
-        assert(node_child.isValid());
+        GHULBUS_ASSERT(node_child.isValid());
         children.push_back(node_child);
     }
     return children;
@@ -164,6 +165,8 @@ void FileSystemModel::propagateCheckChangeUp(QModelIndex const& node_index, Qt::
 
 void FileSystemModel::onNewRow(QModelIndex const& parent, int start, int end)
 {
+    GHULBUS_LOG(Debug, "New rows [" << start << ".." << end << "]" << " under "
+                       << (parent.isValid() ? filePath(parent).toUtf8().data() : "root"));
     auto it = m_checkMap.find(parent);
     if(it != m_checkMap.end()) {
         if((it->second == Qt::Checked) || (it->second == Qt::Unchecked)) {
