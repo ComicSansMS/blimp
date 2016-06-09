@@ -16,6 +16,9 @@ public:
 
     ~MainWindow();
 
+public slots:
+    void onButtonClicked();
+
 private:
     QWidget* m_central;
     QTreeView* m_treeview;

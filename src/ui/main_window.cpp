@@ -19,9 +19,17 @@ MainWindow::MainWindow()
     m_central->setLayout(m_layout);
     setCentralWidget(m_central);
     connect(m_treeview, &QTreeView::clicked, m_model, &FileSystemModel::itemClicked);
+    connect(m_okButton, &QPushButton::clicked, this, &MainWindow::onButtonClicked);
     show();
 }
 
 MainWindow::~MainWindow()
 {
+}
+
+void MainWindow::onButtonClicked()
+{
+    auto const checked_files = m_model->getCheckedFilePaths();
+    for(auto& f : checked_files) {
+    }
 }

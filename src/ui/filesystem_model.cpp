@@ -41,6 +41,30 @@ Qt::ItemFlags FileSystemModel::flags(QModelIndex const& index) const
     return ret;
 }
 
+std::vector<std::string> FileSystemModel::getCheckedFilePaths() const
+{
+    std::vector<std::string> ret;
+    addCheckedFilePaths_rec(QModelIndex(), ret);
+    return ret;
+}
+
+void FileSystemModel::addCheckedFilePaths_rec(QModelIndex const& node_index,
+                                              std::vector<std::string>& checkedFilePaths) const
+{
+    auto const children = getChildren(node_index);
+    auto const it_end = m_checkMap.end();
+    for(auto const& child : children) {
+        auto const it = m_checkMap.find(child);
+        if(it != it_end) {
+            if(it->second == Qt::Checked) {
+                checkedFilePaths.emplace_back(QFileSystemModel::filePath(child).toUtf8());
+            } else if(it->second == Qt::PartiallyChecked) {
+                addCheckedFilePaths_rec(child, checkedFilePaths);
+            }
+        }
+    }
+}
+
 void FileSystemModel::itemClicked(QModelIndex const& index)
 {
     if(index.column() == 0) {
@@ -62,19 +86,26 @@ void FileSystemModel::itemClicked(QModelIndex const& index)
     }
 }
 
+std::vector<QModelIndex> FileSystemModel::getChildren(QModelIndex const& node_index) const
+{
+    auto const nChildren = rowCount(node_index);
+    std::vector<QModelIndex> children;
+    children.reserve(nChildren);
+    for(int i=0; i<nChildren; ++i) {
+        auto const node_child = index(i, 0, node_index);
+        assert(node_child.isValid());
+        children.push_back(node_child);
+    }
+    return children;
+}
+
 void FileSystemModel::propagateCheckChangeDown(QModelIndex const& node_index, Qt::CheckState new_state)
 {
     if (new_state == Qt::PartiallyChecked) {
         return;
     }
-    auto const nChildren = rowCount(node_index);
-    std::vector<QModelIndex> children;
-    children.reserve(nChildren);
-    for(int i=0; i<nChildren; ++i) {
-        auto const node_child = index(i, 0, node_index);;
-        assert(node_child.isValid());
-        children.push_back(node_child);
-    }
+    // if we are fully (un-)checked, so are all our children and their children
+    std::vector<QModelIndex> const children = getChildren(node_index);
     QVector<int> roles_changed;
     roles_changed.push_back(Qt::CheckStateRole);
     for(auto& child : children) {
@@ -89,17 +120,11 @@ void FileSystemModel::propagateCheckChangeUp(QModelIndex const& node_index, Qt::
     auto const node_parent = parent(node_index);
     if(node_parent.isValid())
     {
-        auto const nChildren = rowCount(node_parent);
-        std::vector<QModelIndex> siblings;
-        siblings.reserve(nChildren);
-        for(int i=0; i<nChildren; ++i) {
-            auto const node_sibling = index(i, 0, node_parent);
-            assert(node_sibling.isValid());
-            siblings.push_back(node_sibling);
-        }
+        std::vector<QModelIndex> const siblings = getChildren(node_parent);
 
         bool parent_changed = false;
         if(new_state == Qt::Checked) {
+            // my parent is checked if all my siblings are checked
             auto const is_checked = [this](QModelIndex const& idx) {
                 auto it = m_checkMap.find(idx);
                 return (it != end(m_checkMap)) && (it->second == Qt::Checked);
@@ -109,6 +134,7 @@ void FileSystemModel::propagateCheckChangeUp(QModelIndex const& node_index, Qt::
                 parent_changed = true;
             }
         } else if(new_state == Qt::Unchecked) {
+            // my parent is unchecked if all my siblings are unchecked
             auto const is_unchecked = [this](QModelIndex const& idx) {
                 auto it = m_checkMap.find(idx);
                 return (it == end(m_checkMap)) || (it->second == Qt::Unchecked);
@@ -119,6 +145,7 @@ void FileSystemModel::propagateCheckChangeUp(QModelIndex const& node_index, Qt::
             }
         }
         if(!parent_changed) {
+            // if my parent is neither checked nor unchecked, it has to be partially checked
             auto& element = m_checkMap[node_parent];
             if(element != Qt::PartiallyChecked) {
                 element = Qt::PartiallyChecked;
@@ -126,6 +153,7 @@ void FileSystemModel::propagateCheckChangeUp(QModelIndex const& node_index, Qt::
             }
         }
         if(parent_changed) {
+            // if my parent changed, my grand-parent might need to change too
             QVector<int> roles_changed;
             roles_changed.push_back(Qt::CheckStateRole);
             emit dataChanged(node_parent, node_parent, roles_changed);

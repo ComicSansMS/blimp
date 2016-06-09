@@ -1,7 +1,9 @@
 
 #include <QFileSystemModel>
 
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace std
 {
@@ -26,6 +28,8 @@ public:
 
     Qt::ItemFlags flags(QModelIndex const& index) const override;
 
+    std::vector<std::string> getCheckedFilePaths() const;
+
 public slots:
      void itemClicked(QModelIndex const& index);
 
@@ -35,6 +39,10 @@ private slots:
 private:
     void propagateCheckChangeDown(QModelIndex const& node_index, Qt::CheckState new_state);
     void propagateCheckChangeUp(QModelIndex const& node_index, Qt::CheckState new_state);
+
+    std::vector<QModelIndex> getChildren(QModelIndex const& node_index) const;
+
+    void addCheckedFilePaths_rec(QModelIndex const& node_index, std::vector<std::string>& checkedFilePaths) const;
 
 private:
     std::unordered_map<QModelIndex, Qt::CheckState> m_checkMap;
