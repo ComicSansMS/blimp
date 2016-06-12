@@ -1,3 +1,6 @@
+#ifdef BLIMP_HAS_VLD
+#   include <vld.h>
+#endif
 
 #include <aws/core/Aws.h>
 #include <aws/glacier/GlacierClient.h>
@@ -22,8 +25,10 @@
 int main(int argc, char* argv[])
 {
     Ghulbus::Log::initializeLogging();
+    auto gbbase_guard = gsl::finally([]() { Ghulbus::Log::shutdownLogging(); });
     Ghulbus::Log::setLogHandler(Ghulbus::Log::Handlers::logToWindowsDebugger);
     Ghulbus::Log::setLogLevel(Ghulbus::LogLevel::Trace);
+
     CryptoPP::AESEncryption aes_encrypt;
     byte key[] = { 'C', 'O', 'O', 'L', 'K', 'E', 'Y', '!' };
     aes_encrypt.SetKey(key, sizeof(key));
@@ -32,8 +37,10 @@ int main(int argc, char* argv[])
 
     Aws::SDKOptions opt;
     Aws::InitAPI(opt);
+    auto aws_guard = gsl::finally([&opt]() { Aws::ShutdownAPI(opt); });
 
     sqlite3_initialize();
+    auto sqlite_guard = gsl::finally([]() { sqlite3_shutdown(); });
 
     QApplication the_app(argc, argv);
 
