@@ -1,3 +1,5 @@
+#ifndef BLIMP_INCLUDE_GUARD_UI_FILESYSTEM_MODEL_HPP
+#define BLIMP_INCLUDE_GUARD_UI_FILESYSTEM_MODEL_HPP
 
 #include <QFileSystemModel>
 
@@ -47,3 +49,5 @@ private:
 private:
     std::unordered_map<QModelIndex, Qt::CheckState> m_checkMap;
 };
+
+#endif

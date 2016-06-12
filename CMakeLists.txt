@@ -19,6 +19,8 @@ set(BLIMP_SOURCE_FILES
 )
 
 set(BLIMP_HEADER_FILES
+    ${BLIMP_SOURCE_DIRECTORY}/exceptions.hpp
+    ${BLIMP_SOURCE_DIRECTORY}/version.hpp
     ${BLIMP_SOURCE_DIRECTORY}/db/blimpdb.hpp
 )
 

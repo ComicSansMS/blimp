@@ -1,3 +1,5 @@
+#ifndef BLIMP_INCLUDE_GUARD_UI_MAIN_WINDOW_HPP
+#define BLIMP_INCLUDE_GUARD_UI_MAIN_WINDOW_HPP
 
 #include <ui/filesystem_model.hpp>
 
@@ -26,3 +28,5 @@ private:
     QBoxLayout* m_layout;
     QPushButton* m_okButton;
 };
+
+#endif
