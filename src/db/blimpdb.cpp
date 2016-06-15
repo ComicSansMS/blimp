@@ -111,24 +111,6 @@ std::ostream& operator<<(std::ostream& os, Value const& v)
 }
 
 
-void createBlimpPropertiesTable(sqlite3* db)
-{
-    char const blimp_properties_table[] = "CREATE TABLE IF NOT EXISTS blimp_properties(key TEXT PRIMARY KEY, value TEXT);";
-    sqlite3_stmt* stmt = nullptr;
-    auto stmt_guard = gsl::finally([&stmt]() { sqlite3_finalize(stmt); });
-    char const* tail = nullptr;
-    auto res = sqlite3_prepare_v2(db, blimp_properties_table, sizeof(blimp_properties_table), &stmt, &tail);
-    if((res != SQLITE_OK) || (tail - blimp_properties_table != sizeof(blimp_properties_table) - 1)) {
-        GHULBUS_THROW(SqliteException() << Exception_Info::sqlite_error_code(res),
-                      "Error creating statement for sqlite.");
-    }
-    res = sqlite3_step(stmt);
-    if(res != SQLITE_DONE) {
-        GHULBUS_THROW(SqliteException() << Exception_Info::sqlite_error_code(res),
-                      "Error executing sqlite query.");
-    }
-}
-
 class Query
 {
 public:
@@ -245,8 +227,8 @@ void Query::bind(int param_index, TypeForValueType<ValueType::Real>::type value)
 
 void Query::bind(int param_index, TypeForValueType<ValueType::Text>::type const& value)
 {
-    int const res = sqlite3_bind_text(m_stmt, param_index, value.c_str(), value.size() + 1,
-                                        SQLITE_TRANSIENT);
+    int const res = sqlite3_bind_text64(m_stmt, param_index, value.c_str(), value.size() + 1,
+                                        SQLITE_TRANSIENT, SQLITE_UTF8);
     if(res != SQLITE_OK) {
         GHULBUS_THROW(SqliteException() << Exception_Info::sqlite_error_code(res),
                       "Binding Text argument failed.");
@@ -283,6 +265,23 @@ Query::State Query::step()
                   "Executing query step failed.");
 }
 
+void createBlimpPropertiesTable(sqlite3* db)
+{
+    {
+        char const blimp_properties_table[] = "CREATE TABLE IF NOT EXISTS blimp_properties(key TEXT PRIMARY KEY, value TEXT);";
+        Query q_table_create(db, blimp_properties_table);
+        auto const res = q_table_create.step();
+        GHULBUS_ASSERT(res == Query::State::Completed);
+    }
+    {
+        Query q_insert_version(db, "INSERT INTO blimp_properties VALUES (@key, @value);");
+        q_insert_version.bind("@key", "version");
+        q_insert_version.bind("@value", std::to_string(BlimpVersion::version()));
+        auto const res = q_insert_version.step();
+        GHULBUS_ASSERT(res == Query::State::Completed);
+    }
+}
+
 
 /* static */
 void BlimpDB::createNewFileDatabase(std::string const& db_filename, std::vector<std::string> const& initialFileSet)
@@ -299,16 +298,20 @@ void BlimpDB::createNewFileDatabase(std::string const& db_filename, std::vector<
 
     createBlimpPropertiesTable(db);
 
-    try {
-        Query insert(db, "INSERT INTO blimp_properties VALUES (@key, @value);");
-        insert.bind("@key", "version");
-        insert.bind("@value", std::to_string(BlimpVersion::version()));
-        insert.step();
-    } catch(SqliteException&) {}
-
-    //Query q(db, "SELECT * FROM sqlite_master WHERE type='table' AND name='blimp_properties';");
-    //q.bind("@tabtype", "table");
-    //q.bind("@name", "blimp_properties");
+    //{
+    //    Query q(db, "SELECT * FROM sqlite_master WHERE type=@tabtype;");
+    //    q.bind("@tabtype", "table");
+    //    q.bind("@name", "blimp_properties");
+    //    while(q.step() != Query::State::Completed) {
+    //        auto stmt = q.getStmt();
+    //        int colcount = sqlite3_column_count(stmt);
+    //        for(int i=0; i<colcount; ++i) {
+    //            auto type = static_cast<ValueType>(sqlite3_column_type(stmt, i));
+    //            GHULBUS_LOG(Trace, i << "st column: " << sqlite3_column_name(stmt, i)
+    //                << " [" << type << "] - " << extractColumnValue(stmt, i));
+    //        }
+    //    }
+    //}
     Query q(db, "SELECT * FROM blimp_properties WHERE key=@key;");
     q.bind("@key", "version");
     GHULBUS_LOG(Info, sqlite3_sql(q.getStmt()));
