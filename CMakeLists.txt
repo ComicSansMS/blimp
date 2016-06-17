@@ -9,6 +9,8 @@ if(WIN32)
     list(APPEND CMAKE_PREFIX_PATH ${QT5_BASE_DIR} ${WINSDK_LIB_DIR})
 endif()
 find_package(Qt5Widgets)
+set(Boost_USE_STATIC_LIBS ON)
+find_package(Boost REQUIRED filesystem)
 
 set(BLIMP_SOURCE_DIRECTORY ${PROJECT_SOURCE_DIR}/src)
 set(BLIMP_INCLUDE_DIRECTORY ${PROJECT_SOURCE_DIR}/src)
@@ -55,7 +57,17 @@ add_executable(blimp
     ${BLIMP_QT_MOC_SOURCE_FILES}
 )
 target_include_directories(blimp PUBLIC ${BLIMP_INCLUDE_DIRECTORY})
-target_link_libraries(blimp PUBLIC aws-cpp-sdk-glacier cryptopp-static gbBase GSL sqlpp11-connector-sqlite3 sqlite3 Qt5::Widgets)
+target_link_libraries(blimp PUBLIC
+    aws-cpp-sdk-glacier
+    Boost::disable_autolinking
+    Boost::filesystem
+    cryptopp-static
+    gbBase
+    GSL
+    sqlpp11-connector-sqlite3
+    sqlite3
+    Qt5::Widgets
+)
 target_include_directories(blimp PUBLIC external/date)
 target_include_directories(blimp PUBLIC external/sqlpp11/include)
 target_include_directories(blimp PUBLIC external/sqlpp11-connector-sqlite3/include)

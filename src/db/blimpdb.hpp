@@ -8,6 +8,7 @@ class BlimpDB
 {
 public:
     static void createNewFileDatabase(std::string const& db_filename, std::vector<std::string> const& initialFileSet);
+    static void openExistingFileDatabase(std::string const& db_filename);
 };
 
 #endif

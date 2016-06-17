@@ -19,12 +19,22 @@
 #include <limits>
 #include <ostream>
 
+namespace
+{
+inline bool constexpr sqlpp11_debug()
+{
+    return true;
+}
+}
+
 void createBlimpPropertiesTable(sqlpp::sqlite3::connection& db)
 {
     auto const prop_tab = blimpdb::BlimpProperties{};
-    db.execute("CREATE TABLE IF NOT EXISTS blimp_properties(id TEXT PRIMARY KEY, value TEXT);");
+    db.execute("CREATE TABLE blimp_properties(id TEXT PRIMARY KEY, value TEXT);");
     db(sqlpp::insert_into(prop_tab).set(prop_tab.id    = "version",
                                         prop_tab.value = std::to_string(BlimpVersion::version())));
+
+    db.execute("CREATE TABLE file_index (id INTEGER PRIMARY KEY, path TEXT NOT NULL)");
 }
 
 
@@ -35,28 +45,41 @@ void BlimpDB::createNewFileDatabase(std::string const& db_filename, std::vector<
                       << initialFileSet.size() << " element(s).");
 
     sqlpp::sqlite3::connection_config conf;
-    conf.debug = true;
+    conf.debug = sqlpp11_debug();
     conf.flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
     conf.path_to_database = db_filename;
 
-    try {
+    sqlpp::sqlite3::connection db(conf);
+    createBlimpPropertiesTable(db);
+
+    GHULBUS_LOG(Info, " Successfully established database at " << db_filename << ".");
+}
+
+/* static */
+void BlimpDB::openExistingFileDatabase(std::string const& db_filename)
+{
+    sqlpp::sqlite3::connection_config conf;
+    conf.debug = sqlpp11_debug();
+    conf.flags = SQLITE_OPEN_READWRITE;
+    conf.path_to_database = db_filename;
+
     sqlpp::sqlite3::connection db(conf);
     auto const master_tab = blimpdb::SqliteMaster{};
-    if(db(sqlpp::select(master_tab.name).from(master_tab)
-            .where((master_tab.name == "blimp_properties") && (master_tab.type == "table"))).empty())
+    if(db(sqlpp::select(master_tab.name)
+        .from(master_tab)
+        .where((master_tab.name == "blimp_properties") && (master_tab.type == "table"))).empty())
     {
-        createBlimpPropertiesTable(db);
+        GHULBUS_THROW(Exceptions::DatabaseError(), "Database file does not contain a blimp properties table.");
     }
 
     auto const prop_tab = blimpdb::BlimpProperties{};
     for(auto const& r : db(sqlpp::select(prop_tab.value).from(prop_tab).where(prop_tab.id == "version")))
     {
-        GHULBUS_LOG(Info, "ROW: " << r.value);
+        int const version = std::stoi(r.value);
+        GHULBUS_LOG(Trace, "Database version " << version);
+        if(version != BlimpVersion::version())
+        {
+            GHULBUS_THROW(Exceptions::DatabaseError(), "Unsupported database version " + std::string(r.value) + ".");
+        }
     }
-    } catch(sqlpp::exception& e) {
-        GHULBUS_LOG(Error, "Sqlpp exception: " << e.what());
-    }
-
-    GHULBUS_LOG(Info, " Successfully established database at " << db_filename << ".");
 }
-

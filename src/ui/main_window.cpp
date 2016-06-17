@@ -4,6 +4,8 @@
 
 #include <QFileDialog>
 
+#include <boost/filesystem.hpp>
+
 MainWindow::MainWindow()
     :m_central(new QWidget(this)), m_treeview(new QTreeView), m_model(new FileSystemModel(this)),
      m_layout(new QBoxLayout(QBoxLayout::Direction::TopToBottom, m_central)),
@@ -33,7 +35,11 @@ MainWindow::~MainWindow()
 void MainWindow::onButtonClicked()
 {
     auto const checked_files = m_model->getCheckedFilePaths();
-    auto const target_file = QFileDialog::getSaveFileName(this, "Save File Database", QString(),
-                                                          "Blimp Database File (*.blimpdb)");
-    BlimpDB::createNewFileDatabase(target_file.toUtf8().constData(), checked_files);
+    auto const qt_target_file = QFileDialog::getSaveFileName(this, "Save File Database", QString(),
+                                                             "Blimp Database File (*.blimpdb)");
+    auto const target_file = std::string(qt_target_file.toUtf8().constData());
+    if(boost::filesystem::exists(target_file)) {
+        boost::filesystem::remove(target_file);
+    }
+    BlimpDB::createNewFileDatabase(target_file, checked_files);
 }
