@@ -24,6 +24,12 @@ set(BLIMP_HEADER_FILES
     ${BLIMP_SOURCE_DIRECTORY}/db/blimpdb.hpp
 )
 
+set(BLIMP_TABLE_HEADER_FILES
+    ${BLIMP_SOURCE_DIRECTORY}/db/table/blimp_properties.hpp
+    ${BLIMP_SOURCE_DIRECTORY}/db/table/sqlite_master.hpp
+)
+source_group("Table Headers" FILES ${BLIMP_TABLE_HEADER_FILES})
+
 set(BLIMP_QT_SOURCE_FILES
     ${BLIMP_SOURCE_DIRECTORY}/ui/filesystem_model.cpp
     ${BLIMP_SOURCE_DIRECTORY}/ui/main_window.cpp
@@ -40,9 +46,19 @@ source_group(moc FILES
 )
 
 
-add_executable(blimp ${BLIMP_SOURCE_FILES} ${BLIMP_HEADER_FILES} ${BLIMP_QT_SOURCE_FILES} ${BLIMP_QT_MOC_HEADER_FILES} ${BLIMP_QT_MOC_SOURCE_FILES})
+add_executable(blimp
+    ${BLIMP_SOURCE_FILES}
+    ${BLIMP_HEADER_FILES}
+    ${BLIMP_TABLE_HEADER_FILES}
+    ${BLIMP_QT_SOURCE_FILES}
+    ${BLIMP_QT_MOC_HEADER_FILES}
+    ${BLIMP_QT_MOC_SOURCE_FILES}
+)
 target_include_directories(blimp PUBLIC ${BLIMP_INCLUDE_DIRECTORY})
-target_link_libraries(blimp PUBLIC aws-cpp-sdk-glacier cryptopp-static gbBase GSL sqlite3 Qt5::Widgets)
+target_link_libraries(blimp PUBLIC aws-cpp-sdk-glacier cryptopp-static gbBase GSL sqlpp11-connector-sqlite3 sqlite3 Qt5::Widgets)
+target_include_directories(blimp PUBLIC external/date)
+target_include_directories(blimp PUBLIC external/sqlpp11/include)
+target_include_directories(blimp PUBLIC external/sqlpp11-connector-sqlite3/include)
 
 if(WIN32)
     getQt5Dlls(Qt5::Widgets qt_DLLS)

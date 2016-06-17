@@ -27,3 +27,7 @@ add_library(GSL INTERFACE)
 target_include_directories(GSL INTERFACE ${CMAKE_CURRENT_LIST_DIR}/GSL/include)
 
 add_subdirectory(sqlite3)
+
+set(SQLITE3_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/sqlite3)
+set(SQLITE3_LIBRARY sqlite3)
+add_subdirectory(sqlpp11-connector-sqlite3)

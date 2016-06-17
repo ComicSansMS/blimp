@@ -1,8 +1,6 @@
 #ifndef BLIMP_INCLUDE_GUARD_DB_BLIMPDB_HPP
 #define BLIMP_INCLUDE_GUARD_DB_BLIMPDB_HPP
 
-#include <sqlite3.h>
-
 #include <string>
 #include <vector>
 

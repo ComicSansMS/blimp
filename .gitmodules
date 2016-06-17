@@ -10,3 +10,12 @@
 [submodule "external/GhulbusBase"]
 	path = external/GhulbusBase
 	url = https://github.com/ComicSansMS/GhulbusBase.git
+[submodule "external/date"]
+	path = external/date
+	url = https://github.com/HowardHinnant/date.git
+[submodule "external/sqlpp11"]
+	path = external/sqlpp11
+	url = https://github.com/rbock/sqlpp11.git
+[submodule "external/sqlpp11-connector-sqlite3"]
+	path = external/sqlpp11-connector-sqlite3
+	url = https://github.com/ComicSansMS/sqlpp11-connector-sqlite3.git
