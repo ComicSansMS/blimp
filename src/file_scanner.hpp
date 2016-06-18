@@ -5,6 +5,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include <atomic>
 #include <condition_variable>
 #include <ctime>
 #include <cstdint>
@@ -28,6 +29,7 @@ private:
     std::condition_variable m_condvar;
     std::thread m_scanThread;
     std::vector<FileInfo> m_fileList;
+    std::atomic<bool> m_cancelScanning;
 public:
     FileScanner();
     ~FileScanner();

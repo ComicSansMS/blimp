@@ -16,6 +16,7 @@ public:
 
 public slots:
     void onButtonClicked();
+    void onCancelClicked();
     void onFileScanFileListCompleted(std::uintmax_t n_files);
 
 private:

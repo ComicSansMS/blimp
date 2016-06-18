@@ -25,6 +25,7 @@ struct MainWindow::Pimpl
     FileSystemModel* model;
     QBoxLayout* layout;
     QPushButton* okButton;
+    QPushButton* cancelButton;
     struct StatusBarWidgets {
         QLabel* progressLabel;
         QProgressBar* progressBar;
@@ -34,7 +35,8 @@ struct MainWindow::Pimpl
     Pimpl(MainWindow* parent)
         :central(new QWidget(parent)), treeview(new QTreeView), model(new FileSystemModel(parent)),
          layout(new QBoxLayout(QBoxLayout::Direction::TopToBottom, central)),
-         okButton(new QPushButton("Write checks to DB", parent))
+         okButton(new QPushButton("Write checks to DB", parent)),
+         cancelButton(new QPushButton("Cancel scanning", parent))
     {
     }
 };
@@ -58,14 +60,19 @@ MainWindow::MainWindow()
     m_pimpl->treeview->resize(width(), height());
     m_pimpl->treeview->setColumnWidth(0, 400);
     m_pimpl->treeview->hideColumn(1);
+
     m_pimpl->layout->addWidget(m_pimpl->treeview);
     m_pimpl->layout->addWidget(m_pimpl->okButton);
+    m_pimpl->layout->addWidget(m_pimpl->cancelButton);
+    m_pimpl->cancelButton->setEnabled(false);
+
     m_pimpl->central->setLayout(m_pimpl->layout);
     setCentralWidget(m_pimpl->central);
     connect(m_pimpl->treeview, &QTreeView::clicked, m_pimpl->model, &FileSystemModel::itemClicked);
     connect(m_pimpl->okButton, &QPushButton::clicked, this, &MainWindow::onButtonClicked);
     connect(&m_pimpl->fileScanner, &FileScanner::fileListCompleted,
             this, &MainWindow::onFileScanFileListCompleted, Qt::QueuedConnection);
+    connect(m_pimpl->cancelButton, &QPushButton::clicked, this, &MainWindow::onCancelClicked);
     show();
 }
 
@@ -82,6 +89,8 @@ void MainWindow::onButtonClicked()
     if(boost::filesystem::exists(target_file)) {
         boost::filesystem::remove(target_file);
     }
+    m_pimpl->okButton->setEnabled(false);
+    m_pimpl->treeview->setEnabled(false);
     BlimpDB::createNewFileDatabase(target_file, checked_files);
     m_pimpl->fileScanner.addFilesToScan(checked_files);
     m_pimpl->statusBar.progressBar->setMinimum(0);
@@ -89,6 +98,18 @@ void MainWindow::onButtonClicked()
     m_pimpl->statusBar.progressBar->show();
     m_pimpl->statusBar.progressLabel->setText("Scanning...");
     m_pimpl->fileScanner.startScanning();
+    m_pimpl->cancelButton->setEnabled(true);
+}
+
+void MainWindow::onCancelClicked()
+{
+    m_pimpl->fileScanner.cancelScanning();
+    m_pimpl->cancelButton->setEnabled(false);
+    m_pimpl->okButton->setEnabled(true);
+    m_pimpl->treeview->setEnabled(true);
+    m_pimpl->statusBar.progressBar->hide();
+    m_pimpl->statusBar.progressLabel->setText("");
+    statusBar()->showMessage("Scanning canceled.", 5000);
 }
 
 void MainWindow::onFileScanFileListCompleted(std::uintmax_t n_files)
