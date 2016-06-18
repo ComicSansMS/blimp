@@ -49,11 +49,15 @@ public slots:
     void cancelScanning();
 
 signals:
-    void fileListCompleted(std::uintmax_t n_files_in_list);
-    void indexUpdate(std::uintmax_t n_files_indexed);
+    void indexingCompleted(std::uintmax_t n_files_in_list);
+    void indexingUpdate(std::uintmax_t n_files_indexed);
+
+    void checksumCalculationUpdate(std::uintmax_t n_total_files_processed);
 
 private:
     void indexFilesRecursively(boost::filesystem::path const& file_to_scan);
+
+    void calculateHash(FileInfo const& file_info);
 };
 
 #endif

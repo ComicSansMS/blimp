@@ -17,8 +17,9 @@ public:
 public slots:
     void onButtonClicked();
     void onCancelClicked();
-    void onFileScanFileListCompleted(std::uintmax_t n_files);
-    void onFileIndexUpdate(std::uintmax_t n_files);
+    void onFileScanIndexingCompleted(std::uintmax_t n_files);
+    void onFileScanIndexingUpdate(std::uintmax_t n_files);
+    void onFileScanChecksumUpdate(std::uintmax_t n_files);
 
 private:
     struct Pimpl;

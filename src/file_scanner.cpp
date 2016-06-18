@@ -1,10 +1,30 @@
 #include <file_scanner.hpp>
 
+#include <gbBase/Assert.hpp>
 #include <gbBase/Log.hpp>
 
+#include <gsl.h>
+
+#include <hex.h>
+#include <sha.h>
+
+#include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/filesystem.hpp>
 
 #include <algorithm>
+#include <array>
+#include <cstdio>
+
+std::string digestToString(std::array<gsl::byte, CryptoPP::SHA256::DIGESTSIZE> const& digest)
+{
+    CryptoPP::HexEncoder enc;
+    enc.Put(reinterpret_cast<byte const*>(digest.data()), digest.size());
+    std::array<char, 2*CryptoPP::SHA256::DIGESTSIZE + 1> buffer;
+    auto const res = enc.Get(reinterpret_cast<byte*>(buffer.data()), 2*digest.size());
+    GHULBUS_ASSERT(res == 2*digest.size());
+    buffer.back() = '\0';
+    return std::string(buffer.data());
+}
 
 FileScanner::FileScanner()
 {
@@ -50,7 +70,18 @@ void FileScanner::startScanning()
         auto const indexingDurationSeconds = std::chrono::duration_cast<std::chrono::seconds>(indexingDuration);
         GHULBUS_LOG(Debug, "Indexing complete after " << indexingDurationSeconds.count() << " seconds."
                            " Found " << m_fileIndexList.size() << " file(s).");
-        emit fileListCompleted(m_fileIndexList.size());
+        emit indexingCompleted(m_fileIndexList.size());
+
+        std::size_t files_processed = 0;
+        for(auto const& f : m_fileIndexList) {
+            calculateHash(f);
+            ++files_processed;
+            emit checksumCalculationUpdate(files_processed);
+            if(m_cancelScanning) {
+                GHULBUS_LOG(Debug, "Aborting scanning due to cancel request.");
+                break;
+            }
+        }
     });
 }
 
@@ -86,7 +117,35 @@ void FileScanner::indexFilesRecursively(boost::filesystem::path const& file_to_s
                              "File will be skipped.");
     }
 
-    emit indexUpdate(m_fileIndexList.size());
+    emit indexingUpdate(m_fileIndexList.size());
+}
+
+void FileScanner::calculateHash(FileInfo const& file_info)
+{
+    auto fin = std::fopen(file_info.path.string().c_str(), "rb");
+    if(!fin) {
+    }
+    auto fin_guard = gsl::finally([&fin]() { int ret = std::fclose(fin); GHULBUS_ASSERT(ret == 0); });
+    std::size_t const HASH_BUFFER_SIZE = 8192;
+    std::array<gsl::byte, HASH_BUFFER_SIZE> buffer;
+    std::size_t bytes_left = file_info.size;
+    CryptoPP::SHA256 hash_calc;
+    hash_calc.Restart();
+    while(bytes_left > 0) {
+        std::size_t const bytes_to_read = std::min(bytes_left, buffer.size());
+        auto const bytes_read = std::fread(buffer.data(), sizeof(gsl::byte), bytes_to_read, fin);
+        if(bytes_read != bytes_to_read) {
+            GHULBUS_LOG(Error, "Error while reading file " << file_info.path << "; " << bytes_read << ".");
+            break;
+        }
+        bytes_left -= bytes_read;
+        hash_calc.Update(reinterpret_cast<byte const*>(buffer.data()), bytes_read);
+    }
+    if(bytes_left == 0) {
+        std::array<gsl::byte, CryptoPP::SHA256::DIGESTSIZE> hash;
+        hash_calc.Final(reinterpret_cast<byte*>(hash.data()));
+        GHULBUS_LOG(Debug, "Hash for " << file_info.path << " is " << digestToString(hash) << ".");
+    }
 }
 
 void FileScanner::cancelScanning()

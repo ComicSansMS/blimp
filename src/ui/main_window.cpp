@@ -31,6 +31,7 @@ struct MainWindow::Pimpl
         QProgressBar* progressBar;
     } statusBar;
     FileScanner fileScanner;
+    std::uintmax_t numberOfFilesInIndex;
 
     Pimpl(MainWindow* parent)
         :central(new QWidget(parent)), treeview(new QTreeView), model(new FileSystemModel(parent)),
@@ -70,11 +71,13 @@ MainWindow::MainWindow()
     setCentralWidget(m_pimpl->central);
     connect(m_pimpl->treeview, &QTreeView::clicked, m_pimpl->model, &FileSystemModel::itemClicked);
     connect(m_pimpl->okButton, &QPushButton::clicked, this, &MainWindow::onButtonClicked);
-    connect(&m_pimpl->fileScanner, &FileScanner::fileListCompleted,
-            this, &MainWindow::onFileScanFileListCompleted, Qt::QueuedConnection);
+    connect(&m_pimpl->fileScanner, &FileScanner::indexingCompleted,
+            this, &MainWindow::onFileScanIndexingCompleted, Qt::QueuedConnection);
     connect(m_pimpl->cancelButton, &QPushButton::clicked, this, &MainWindow::onCancelClicked);
-    connect(&m_pimpl->fileScanner, &FileScanner::indexUpdate,
-            this, &MainWindow::onFileIndexUpdate, Qt::QueuedConnection);
+    connect(&m_pimpl->fileScanner, &FileScanner::indexingUpdate,
+            this, &MainWindow::onFileScanIndexingUpdate, Qt::QueuedConnection);
+    connect(&m_pimpl->fileScanner, &FileScanner::checksumCalculationUpdate,
+            this, &MainWindow::onFileScanChecksumUpdate, Qt::QueuedConnection);
     show();
 }
 
@@ -117,14 +120,21 @@ void MainWindow::onCancelClicked()
     statusBar()->showMessage("Scanning canceled.", 5000);
 }
 
-void MainWindow::onFileScanFileListCompleted(std::uintmax_t n_files)
+void MainWindow::onFileScanIndexingCompleted(std::uintmax_t n_files)
 {
+    m_pimpl->numberOfFilesInIndex = n_files;
     m_pimpl->statusBar.progressLabel->setText(QString::fromStdString("Scanning 0/" + std::to_string(n_files)));
     m_pimpl->statusBar.progressBar->setMinimum(0);
     m_pimpl->statusBar.progressBar->setMaximum(n_files);
 }
 
-void MainWindow::onFileIndexUpdate(std::uintmax_t n_files)
+void MainWindow::onFileScanIndexingUpdate(std::uintmax_t n_files)
 {
     m_pimpl->statusBar.progressLabel->setText(QString::fromStdString("Indexing " + std::to_string(n_files) + "..."));
+}
+
+void MainWindow::onFileScanChecksumUpdate(std::uintmax_t n_files)
+{
+    m_pimpl->statusBar.progressLabel->setText(QString::fromStdString("Scanning " + std::to_string(n_files) + "/" +
+                                                                     std::to_string(m_pimpl->numberOfFilesInIndex)));
 }
