@@ -1,14 +1,10 @@
 #ifndef BLIMP_INCLUDE_GUARD_UI_MAIN_WINDOW_HPP
 #define BLIMP_INCLUDE_GUARD_UI_MAIN_WINDOW_HPP
 
-#include <ui/filesystem_model.hpp>
-
 #include <QMainWindow>
 
-#include <QBoxLayout>
-#include <QPushButton>
-#include <QTreeView>
-#include <QWidget>
+#include <cstdint>
+#include <memory>
 
 class MainWindow : public QMainWindow
 {
@@ -20,13 +16,11 @@ public:
 
 public slots:
     void onButtonClicked();
+    void onFileScanFileListCompleted(std::uintmax_t n_files);
 
 private:
-    QWidget* m_central;
-    QTreeView* m_treeview;
-    FileSystemModel* m_model;
-    QBoxLayout* m_layout;
-    QPushButton* m_okButton;
+    struct Pimpl;
+    std::unique_ptr<Pimpl> m_pimpl;
 };
 
 #endif

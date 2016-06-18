@@ -34,7 +34,8 @@ void createBlimpPropertiesTable(sqlpp::sqlite3::connection& db)
     db(sqlpp::insert_into(prop_tab).set(prop_tab.id    = "version",
                                         prop_tab.value = std::to_string(BlimpVersion::version())));
 
-    db.execute("CREATE TABLE file_index (id INTEGER PRIMARY KEY, path TEXT NOT NULL)");
+    db.execute("CREATE TABLE file_index (id INTEGER PRIMARY KEY, path TEXT NOT NULL);");
+
 }
 
 

@@ -35,11 +35,13 @@ source_group("Table Headers" FILES ${BLIMP_TABLE_HEADER_FILES})
 set(BLIMP_QT_SOURCE_FILES
     ${BLIMP_SOURCE_DIRECTORY}/ui/filesystem_model.cpp
     ${BLIMP_SOURCE_DIRECTORY}/ui/main_window.cpp
+    ${BLIMP_SOURCE_DIRECTORY}/file_scanner.cpp
 )
 
 set(BLIMP_QT_MOC_HEADER_FILES
     ${BLIMP_INCLUDE_DIRECTORY}/ui/filesystem_model.hpp
     ${BLIMP_INCLUDE_DIRECTORY}/ui/main_window.hpp
+    ${BLIMP_INCLUDE_DIRECTORY}/file_scanner.hpp
 )
 qt5_wrap_cpp(BLIMP_QT_MOC_SOURCE_FILES ${BLIMP_QT_MOC_HEADER_FILES})
 
