@@ -24,11 +24,12 @@ public:
         std::time_t modified_time;
     };
 private:
-    std::deque<std::string> m_filesToScan;
+    std::deque<std::string> m_filesToIndex;
     std::mutex m_mtx;
     std::condition_variable m_condvar;
     std::thread m_scanThread;
     std::vector<FileInfo> m_fileList;
+    std::vector<boost::filesystem::path> m_filesSkippedInIndexing;
     std::atomic<bool> m_cancelScanning;
 public:
     FileScanner();
@@ -36,7 +37,7 @@ public:
     FileScanner(FileScanner const&) = delete;
     FileScanner& operator=(FileScanner const&) = delete;
 
-    void addFilesToScan(std::vector<std::string> const& files_to_add);
+    void addFilesForIndexing(std::vector<std::string> const& files_to_add);
 
 public slots:
     void startScanning();

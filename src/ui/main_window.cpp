@@ -85,6 +85,9 @@ void MainWindow::onButtonClicked()
     auto const checked_files = m_pimpl->model->getCheckedFilePaths();
     auto const qt_target_file = QFileDialog::getSaveFileName(this, "Save File Database", QString(),
                                                              "Blimp Database File (*.blimpdb)");
+    if(qt_target_file.isEmpty()) {
+        return;
+    }
     auto const target_file = std::string(qt_target_file.toUtf8().constData());
     if(boost::filesystem::exists(target_file)) {
         boost::filesystem::remove(target_file);
@@ -92,11 +95,11 @@ void MainWindow::onButtonClicked()
     m_pimpl->okButton->setEnabled(false);
     m_pimpl->treeview->setEnabled(false);
     BlimpDB::createNewFileDatabase(target_file, checked_files);
-    m_pimpl->fileScanner.addFilesToScan(checked_files);
+    m_pimpl->fileScanner.addFilesForIndexing(checked_files);
     m_pimpl->statusBar.progressBar->setMinimum(0);
     m_pimpl->statusBar.progressBar->setMaximum(0);
     m_pimpl->statusBar.progressBar->show();
-    m_pimpl->statusBar.progressLabel->setText("Scanning...");
+    m_pimpl->statusBar.progressLabel->setText("Indexing...");
     m_pimpl->fileScanner.startScanning();
     m_pimpl->cancelButton->setEnabled(true);
 }
