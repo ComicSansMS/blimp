@@ -3,14 +3,11 @@ if(WIN32)
     find_path(QT5_BASE_DIR
         NAMES "lib/cmake/Qt5"
         HINTS ENV QT5_ROOT
-        PATH_SUFFIXES "5.6/msvc2015_64"
+        PATH_SUFFIXES "5.7/msvc2015_64"
         DOC "Qt5 Root Directory"
     )
 
     set(QT5_ADDITIONAL_DLLS
-        "${QT5_BASE_DIR}/bin/icuin54.dll"
-        "${QT5_BASE_DIR}/bin/icuuc54.dll"
-        "${QT5_BASE_DIR}/bin/icudt54.dll"
     )
 
     if(NOT QT5_NO_OPENGL)

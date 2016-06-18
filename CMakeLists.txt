@@ -8,7 +8,7 @@ if(WIN32)
     find_package(Qt5BaseDir)
     list(APPEND CMAKE_PREFIX_PATH ${QT5_BASE_DIR} ${WINSDK_LIB_DIR})
 endif()
-find_package(Qt5Widgets)
+find_package(Qt5Widgets 5.7 REQUIRED)
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost REQUIRED filesystem)
 
