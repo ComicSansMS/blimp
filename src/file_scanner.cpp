@@ -37,55 +37,56 @@ void FileScanner::startScanning()
             m_filesToIndex.clear();
         }
         GHULBUS_LOG(Debug, "Indexing " << files_to_process.size() << " item(s) for scanning.");
+        m_timings.indexingStart = std::chrono::steady_clock::now();
         for(auto const& f : files_to_process) {
-            buildFileListRecursively(f);
+            indexFilesRecursively(f);
             if(m_cancelScanning) {
                 GHULBUS_LOG(Debug, "Aborting scanning due to cancel request.");
                 return;
             }
         }
-        GHULBUS_LOG(Debug, "Indexing complete. Found " << m_fileList.size() << " file(s).");
-        emit fileListCompleted(m_fileList.size());
+        m_timings.indexingFinished = std::chrono::steady_clock::now();
+        auto const indexingDuration = m_timings.indexingFinished - m_timings.indexingStart;
+        auto const indexingDurationSeconds = std::chrono::duration_cast<std::chrono::seconds>(indexingDuration);
+        GHULBUS_LOG(Debug, "Indexing complete after " << indexingDurationSeconds.count() << " seconds."
+                           " Found " << m_fileIndexList.size() << " file(s).");
+        emit fileListCompleted(m_fileIndexList.size());
     });
 }
 
-void FileScanner::buildFileListRecursively(boost::filesystem::path const& file_to_scan)
+void FileScanner::indexFilesRecursively(boost::filesystem::path const& file_to_scan)
 {
     if(m_cancelScanning) { return; }
-    if(boost::filesystem::is_directory(file_to_scan)) {
-        boost::system::error_code ec;
-        for(auto const& f : boost::filesystem::directory_iterator(file_to_scan, ec)) {
-            auto const status = boost::filesystem::status(f, ec);
+    boost::system::error_code ec;
+    auto const status = boost::filesystem::status(file_to_scan, ec);
+    if(!ec) {
+        if(boost::filesystem::is_directory(status)) {
+            for(auto const& f : boost::filesystem::directory_iterator(file_to_scan, ec)) {
+                indexFilesRecursively(f);
+            }
+        } else if(boost::filesystem::is_regular_file(status)) {
+            FileInfo info;
+            info.path = file_to_scan;
+            info.size = boost::filesystem::file_size(file_to_scan, ec);
+            info.modified_time = (!ec) ?
+                std::chrono::system_clock::from_time_t(boost::filesystem::last_write_time(file_to_scan, ec)) :
+                std::chrono::system_clock::time_point();
             if(!ec) {
-                if(boost::filesystem::is_directory(status)) {
-                    buildFileListRecursively(f);
-                } else if(boost::filesystem::is_regular_file(status)) {
-                    FileInfo info;
-                    info.path = f;
-                    info.size = boost::filesystem::file_size(f, ec);
-                    info.modified_time = (!ec) ? boost::filesystem::last_write_time(f, ec) : (std::time_t());
-                    if(!ec) {
-                        m_fileList.push_back(info);
-                    }
-                } else {
-                    m_filesSkippedInIndexing.push_back(f);
-                    GHULBUS_LOG(Warning, "File type " << status.type() << " for " << f << " is not supported. "
-                                         "File will be skipped.");
-                }
+                m_fileIndexList.push_back(info);
             }
-            if(ec) {
-                m_filesSkippedInIndexing.push_back(f);
-                GHULBUS_LOG(Warning, "Error while accessing " << f << " - " << ec.message() << ". "
-                                     "File will be skipped.");
-                ec.clear();
-            }
-        }
-        if(ec) {
+        } else {
             m_filesSkippedInIndexing.push_back(file_to_scan);
-            GHULBUS_LOG(Warning, "Error while accessing " << file_to_scan << " - " << ec.message() << ". "
-                                 "Directory will be skipped.");
+            GHULBUS_LOG(Warning, "File type " << status.type() << " for " << file_to_scan << " is not supported. "
+                                 "File will be skipped.");
         }
     }
+    if(ec) {
+        m_filesSkippedInIndexing.push_back(file_to_scan);
+        GHULBUS_LOG(Warning, "Error while accessing " << file_to_scan << " - " << ec.message() << ". "
+                             "File will be skipped.");
+    }
+
+    emit indexUpdate(m_fileIndexList.size());
 }
 
 void FileScanner::cancelScanning()

@@ -6,6 +6,7 @@
 #include <boost/filesystem.hpp>
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <ctime>
 #include <cstdint>
@@ -21,16 +22,20 @@ public:
     struct FileInfo {
         boost::filesystem::path path;
         std::uintmax_t size;
-        std::time_t modified_time;
+        std::chrono::system_clock::time_point modified_time;
     };
 private:
     std::deque<std::string> m_filesToIndex;
     std::mutex m_mtx;
     std::condition_variable m_condvar;
     std::thread m_scanThread;
-    std::vector<FileInfo> m_fileList;
+    std::vector<FileInfo> m_fileIndexList;
     std::vector<boost::filesystem::path> m_filesSkippedInIndexing;
     std::atomic<bool> m_cancelScanning;
+    struct Timings {
+        std::chrono::steady_clock::time_point indexingStart;
+        std::chrono::steady_clock::time_point indexingFinished;
+    } m_timings;
 public:
     FileScanner();
     ~FileScanner();
@@ -45,9 +50,10 @@ public slots:
 
 signals:
     void fileListCompleted(std::uintmax_t n_files_in_list);
+    void indexUpdate(std::uintmax_t n_files_indexed);
 
 private:
-    void buildFileListRecursively(boost::filesystem::path const& file_to_scan);
+    void indexFilesRecursively(boost::filesystem::path const& file_to_scan);
 };
 
 #endif

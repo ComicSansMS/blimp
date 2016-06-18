@@ -73,6 +73,8 @@ MainWindow::MainWindow()
     connect(&m_pimpl->fileScanner, &FileScanner::fileListCompleted,
             this, &MainWindow::onFileScanFileListCompleted, Qt::QueuedConnection);
     connect(m_pimpl->cancelButton, &QPushButton::clicked, this, &MainWindow::onCancelClicked);
+    connect(&m_pimpl->fileScanner, &FileScanner::indexUpdate,
+            this, &MainWindow::onFileIndexUpdate, Qt::QueuedConnection);
     show();
 }
 
@@ -120,4 +122,9 @@ void MainWindow::onFileScanFileListCompleted(std::uintmax_t n_files)
     m_pimpl->statusBar.progressLabel->setText(QString::fromStdString("Scanning 0/" + std::to_string(n_files)));
     m_pimpl->statusBar.progressBar->setMinimum(0);
     m_pimpl->statusBar.progressBar->setMaximum(n_files);
+}
+
+void MainWindow::onFileIndexUpdate(std::uintmax_t n_files)
+{
+    m_pimpl->statusBar.progressLabel->setText(QString::fromStdString("Indexing " + std::to_string(n_files) + "..."));
 }
