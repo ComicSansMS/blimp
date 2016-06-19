@@ -30,6 +30,8 @@ int main(int argc, char* argv[])
     Ghulbus::Log::Handlers::LogAsync async_logger(Ghulbus::Log::Handlers::logToCout);
     Ghulbus::Log::setLogHandler(async_logger);
     Ghulbus::Log::setLogLevel(Ghulbus::LogLevel::Info);
+    async_logger.start();
+    auto const logger_stop_guard = gsl::finally([&async_logger]() { async_logger.stop(); });
 #else
     Ghulbus::Log::setLogHandler(Ghulbus::Log::Handlers::logToWindowsDebugger);
     Ghulbus::Log::setLogLevel(Ghulbus::LogLevel::Trace);
