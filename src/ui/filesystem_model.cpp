@@ -66,6 +66,22 @@ void FileSystemModel::addCheckedFilePaths_rec(QModelIndex const& node_index,
     }
 }
 
+void FileSystemModel::setCheckedFilePaths(std::vector<std::string> const& user_selection)
+{
+    m_checkMap.clear();
+    for(auto const& f : user_selection) {
+        auto const node_index = index(QString::fromStdString(f));
+        m_checkMap[node_index] = Qt::Checked;
+        auto it_parent = parent(node_index);
+        while(it_parent.isValid()) {
+            if(m_checkMap.find(it_parent) == end(m_checkMap)) {
+                m_checkMap[it_parent] = Qt::PartiallyChecked;
+            }
+            it_parent = parent(it_parent);
+        }
+    }
+}
+
 void FileSystemModel::itemClicked(QModelIndex const& index)
 {
     if(index.column() == 0) {

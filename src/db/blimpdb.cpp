@@ -71,8 +71,8 @@ void createBlimpPropertiesTable(sqlpp::sqlite3::connection& db)
     db.execute(blimpdb::table_layout::snapshot());
     db.execute(blimpdb::table_layout::snapshot_contents());
 
-    db(sqlpp::insert_into(prop_tab).set(prop_tab.id    = "version",
-                                        prop_tab.value = std::to_string(BlimpVersion::version())));
+    db(insert_into(prop_tab).set(prop_tab.id    = "version",
+                                 prop_tab.value = std::to_string(BlimpVersion::version())));
 }
 
 void BlimpDB::createNewFileDatabase(std::string const& db_filename)
@@ -103,7 +103,7 @@ void BlimpDB::openExistingFileDatabase(std::string const& db_filename)
     auto& db = m_pimpl->db;
 
     auto const master_tab = blimpdb::SqliteMaster{};
-    if(db(sqlpp::select(master_tab.name)
+    if(db(select(master_tab.name)
         .from(master_tab)
         .where((master_tab.name == "blimp_properties") && (master_tab.type == "table"))).empty())
     {
@@ -111,7 +111,7 @@ void BlimpDB::openExistingFileDatabase(std::string const& db_filename)
     }
 
     auto const prop_tab = blimpdb::BlimpProperties{};
-    for(auto const& r : db(sqlpp::select(prop_tab.value).from(prop_tab).where(prop_tab.id == "version")))
+    for(auto const& r : db(select(prop_tab.value).from(prop_tab).where(prop_tab.id == "version")))
     {
         int const version = std::stoi(r.value);
         GHULBUS_LOG(Trace, "Database version " << version);
@@ -128,8 +128,21 @@ void BlimpDB::setUserSelection(std::vector<std::string> const& selected_files)
                         " entr" << ((selected_files.size() == 1) ? "y" : "ies") << ".");
     auto const tab = blimpdb::UserSelection{};
     auto& db = m_pimpl->db;
-    db(sqlpp::remove_from(tab).unconditionally());
+    db(remove_from(tab).unconditionally());
     for(auto const& f : selected_files) {
-        db(sqlpp::insert_into(tab).set(tab.path = f));
+        db(insert_into(tab).set(tab.path = f));
     }
+}
+
+std::vector<std::string> BlimpDB::getUserSelection()
+{
+    std::vector<std::string> ret;
+    auto const tab = blimpdb::UserSelection{};
+    auto& db = m_pimpl->db;
+    auto const row_count = db(select(count(tab.path)).from(tab).unconditionally()).begin()->count;
+    ret.reserve(row_count);
+    for(auto const& r : db(select(all_of(tab)).from(tab).unconditionally())) {
+        ret.push_back(r.path);
+    }
+    return ret;
 }

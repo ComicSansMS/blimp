@@ -26,6 +26,7 @@ struct MainWindow::Pimpl
     FileSystemModel* model;
     QBoxLayout* layout;
     QPushButton* okButton;
+    QPushButton* openButton;
     QPushButton* cancelButton;
     struct StatusBarWidgets {
         QLabel* progressLabel;
@@ -39,6 +40,7 @@ struct MainWindow::Pimpl
         :central(new QWidget(parent)), treeview(new QTreeView), model(new FileSystemModel(parent)),
          layout(new QBoxLayout(QBoxLayout::Direction::TopToBottom, central)),
          okButton(new QPushButton("Write checks to DB", parent)),
+         openButton(new QPushButton("Open db file from disk", parent)),
          cancelButton(new QPushButton("Cancel scanning", parent))
     {
     }
@@ -66,6 +68,7 @@ MainWindow::MainWindow()
 
     m_pimpl->layout->addWidget(m_pimpl->treeview);
     m_pimpl->layout->addWidget(m_pimpl->okButton);
+    m_pimpl->layout->addWidget(m_pimpl->openButton);
     m_pimpl->layout->addWidget(m_pimpl->cancelButton);
     m_pimpl->cancelButton->setEnabled(false);
 
@@ -73,6 +76,7 @@ MainWindow::MainWindow()
     setCentralWidget(m_pimpl->central);
     connect(m_pimpl->treeview, &QTreeView::clicked, m_pimpl->model, &FileSystemModel::itemClicked);
     connect(m_pimpl->okButton, &QPushButton::clicked, this, &MainWindow::onButtonClicked);
+    connect(m_pimpl->openButton, &QPushButton::clicked, this, &MainWindow::onOpenClicked);
     connect(&m_pimpl->fileScanner, &FileScanner::indexingCompleted,
             this, &MainWindow::onFileScanIndexingCompleted, Qt::QueuedConnection);
     connect(m_pimpl->cancelButton, &QPushButton::clicked, this, &MainWindow::onCancelClicked);
@@ -95,7 +99,7 @@ void MainWindow::onButtonClicked()
     if(qt_target_file.isEmpty()) {
         return;
     }
-    //m_pimpl->blimpdb.reset();
+    m_pimpl->blimpdb.reset();
     auto const target_file = std::string(qt_target_file.toUtf8().constData());
     try {
         if(boost::filesystem::exists(target_file)) {
@@ -122,6 +126,30 @@ void MainWindow::onButtonClicked()
     m_pimpl->statusBar.progressLabel->setText("Indexing...");
     m_pimpl->fileScanner.startScanning();
     m_pimpl->cancelButton->setEnabled(true);
+}
+
+void MainWindow::onOpenClicked()
+{
+    auto const qt_target_file = QFileDialog::getOpenFileName(this, "Open File Database", QString(),
+                                                             "Blimp Database File (*.blimpdb)");
+    if(qt_target_file.isEmpty()) {
+        return;
+    }
+    auto const target_file = std::string(qt_target_file.toUtf8().constData());
+    m_pimpl->blimpdb.reset();
+    try {
+        m_pimpl->blimpdb = std::make_unique<BlimpDB>(target_file, BlimpDB::OpenMode::OpenExisting);
+    } catch(std::exception& e) {
+        QMessageBox msgBox;
+        msgBox.setText(QString("Error while accessing file ") + qt_target_file + ".");
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setInformativeText(QString("Ensure that the file is a valid database file."));
+        msgBox.setDetailedText(QString("The reported error was:\n") + e.what() + ".");
+        msgBox.setIcon(QMessageBox::Critical);
+        msgBox.exec();
+        return;
+    }
+    m_pimpl->model->setCheckedFilePaths(m_pimpl->blimpdb->getUserSelection());
 }
 
 void MainWindow::onCancelClicked()

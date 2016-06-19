@@ -32,6 +32,8 @@ public:
 
     std::vector<std::string> getCheckedFilePaths() const;
 
+    void setCheckedFilePaths(std::vector<std::string> const& user_selection);
+
 public slots:
      void itemClicked(QModelIndex const& index);
 

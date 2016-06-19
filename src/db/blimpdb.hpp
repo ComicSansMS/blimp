@@ -22,6 +22,8 @@ public:
     BlimpDB& operator=(BlimpDB const&) = delete;
 
     void setUserSelection(std::vector<std::string> const& selected_files);
+
+    std::vector<std::string> getUserSelection();
 private:
     void createNewFileDatabase(std::string const& db_filename);
     void openExistingFileDatabase(std::string const& db_filename);
