@@ -10,6 +10,7 @@
 #include <QBoxLayout>
 #include <QFileDialog>
 #include <QLabel>
+#include <QMessageBox>
 #include <QProgressBar>
 #include <QPushButton>
 #include <QStatusBar>
@@ -32,6 +33,7 @@ struct MainWindow::Pimpl
     } statusBar;
     FileScanner fileScanner;
     std::uintmax_t numberOfFilesInIndex;
+    std::unique_ptr<BlimpDB> blimpdb;
 
     Pimpl(MainWindow* parent)
         :central(new QWidget(parent)), treeview(new QTreeView), model(new FileSystemModel(parent)),
@@ -93,13 +95,26 @@ void MainWindow::onButtonClicked()
     if(qt_target_file.isEmpty()) {
         return;
     }
+    //m_pimpl->blimpdb.reset();
     auto const target_file = std::string(qt_target_file.toUtf8().constData());
-    if(boost::filesystem::exists(target_file)) {
-        boost::filesystem::remove(target_file);
+    try {
+        if(boost::filesystem::exists(target_file)) {
+            boost::filesystem::remove(target_file);
+        }
+    } catch(boost::filesystem::filesystem_error& e) {
+        QMessageBox msgBox;
+        msgBox.setText(QString("Error while accessing file ") + qt_target_file + ".");
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setInformativeText(QString("Ensure that the file is not in use by another application."));
+        msgBox.setDetailedText(QString("The reported error was:\n") + e.what() + ".");
+        msgBox.setIcon(QMessageBox::Critical);
+        msgBox.exec();
+        return;
     }
     m_pimpl->okButton->setEnabled(false);
     m_pimpl->treeview->setEnabled(false);
-    BlimpDB::createNewFileDatabase(target_file, checked_files);
+    m_pimpl->blimpdb = std::make_unique<BlimpDB>(target_file, BlimpDB::OpenMode::CreateNew);
+    m_pimpl->blimpdb->setUserSelection(checked_files);
     m_pimpl->fileScanner.addFilesForIndexing(checked_files);
     m_pimpl->statusBar.progressBar->setMinimum(0);
     m_pimpl->statusBar.progressBar->setMaximum(0);

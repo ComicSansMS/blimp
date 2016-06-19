@@ -1,6 +1,7 @@
 #include <db/blimpdb.hpp>
 #include <db/table/table_layout.hpp>
 #include <db/table/blimp_properties.hpp>
+#include <db/table/user_selection.hpp>
 #include <db/table/sqlite_master.hpp>
 
 #include <exceptions.hpp>
@@ -24,8 +25,39 @@ namespace
 {
 inline bool constexpr sqlpp11_debug()
 {
+#ifdef NDEBUG
+    return false;
+#else
     return true;
+#endif
 }
+}
+
+struct BlimpDB::Pimpl
+{
+    sqlpp::sqlite3::connection db;
+
+    Pimpl(sqlpp::sqlite3::connection_config const& conf);
+};
+
+BlimpDB::Pimpl::Pimpl(sqlpp::sqlite3::connection_config const& conf)
+    :db(conf)
+{
+}
+
+BlimpDB::BlimpDB(std::string const& db_filename, OpenMode mode)
+    :m_pimpl(nullptr)
+{
+    if(mode == OpenMode::CreateNew) {
+        createNewFileDatabase(db_filename);
+    } else if(mode == OpenMode::OpenExisting) {
+        openExistingFileDatabase(db_filename);
+    }
+}
+
+BlimpDB::~BlimpDB()
+{
+    // needed for pimpl destruction
 }
 
 void createBlimpPropertiesTable(sqlpp::sqlite3::connection& db)
@@ -43,25 +75,22 @@ void createBlimpPropertiesTable(sqlpp::sqlite3::connection& db)
                                         prop_tab.value = std::to_string(BlimpVersion::version())));
 }
 
-
-/* static */
-void BlimpDB::createNewFileDatabase(std::string const& db_filename, std::vector<std::string> const& initialFileSet)
+void BlimpDB::createNewFileDatabase(std::string const& db_filename)
 {
-    GHULBUS_LOG(Info, "Creating new database at " << db_filename << " from initial set of "
-                      << initialFileSet.size() << " element(s).");
+    GHULBUS_LOG(Info, "Creating new database at " << db_filename << ".");
 
     sqlpp::sqlite3::connection_config conf;
     conf.debug = sqlpp11_debug();
     conf.flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
     conf.path_to_database = db_filename;
 
-    sqlpp::sqlite3::connection db(conf);
-    createBlimpPropertiesTable(db);
+    GHULBUS_ASSERT_PRD(!m_pimpl);
+    m_pimpl = std::make_unique<Pimpl>(conf);
+    createBlimpPropertiesTable(m_pimpl->db);
 
     GHULBUS_LOG(Info, " Successfully established database at " << db_filename << ".");
 }
 
-/* static */
 void BlimpDB::openExistingFileDatabase(std::string const& db_filename)
 {
     sqlpp::sqlite3::connection_config conf;
@@ -69,7 +98,10 @@ void BlimpDB::openExistingFileDatabase(std::string const& db_filename)
     conf.flags = SQLITE_OPEN_READWRITE;
     conf.path_to_database = db_filename;
 
-    sqlpp::sqlite3::connection db(conf);
+    GHULBUS_ASSERT_PRD(!m_pimpl);
+    m_pimpl = std::make_unique<Pimpl>(conf);
+    auto& db = m_pimpl->db;
+
     auto const master_tab = blimpdb::SqliteMaster{};
     if(db(sqlpp::select(master_tab.name)
         .from(master_tab)
@@ -87,5 +119,17 @@ void BlimpDB::openExistingFileDatabase(std::string const& db_filename)
         {
             GHULBUS_THROW(Exceptions::DatabaseError(), "Unsupported database version " + std::string(r.value) + ".");
         }
+    }
+}
+
+void BlimpDB::setUserSelection(std::vector<std::string> const& selected_files)
+{
+    GHULBUS_LOG(Debug, "Updating user selection with " << selected_files.size() <<
+                        " entr" << ((selected_files.size() == 1) ? "y" : "ies") << ".");
+    auto const tab = blimpdb::UserSelection{};
+    auto& db = m_pimpl->db;
+    db(sqlpp::remove_from(tab).unconditionally());
+    for(auto const& f : selected_files) {
+        db(sqlpp::insert_into(tab).set(tab.path = f));
     }
 }
