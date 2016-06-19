@@ -126,7 +126,7 @@ void FileScanner::calculateHash(FileInfo const& file_info)
     if(!fin) {
     }
     auto fin_guard = gsl::finally([&fin]() { int ret = std::fclose(fin); GHULBUS_ASSERT(ret == 0); });
-    std::size_t const HASH_BUFFER_SIZE = 8192;
+    std::size_t const HASH_BUFFER_SIZE = 4096;
     std::array<gsl::byte, HASH_BUFFER_SIZE> buffer;
     std::size_t bytes_left = file_info.size;
     CryptoPP::SHA256 hash_calc;

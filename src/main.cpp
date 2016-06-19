@@ -26,8 +26,14 @@ int main(int argc, char* argv[])
 {
     Ghulbus::Log::initializeLogging();
     auto gbbase_guard = gsl::finally([]() { Ghulbus::Log::shutdownLogging(); });
+#ifdef NDEBUG
+    Ghulbus::Log::Handlers::LogAsync async_logger(Ghulbus::Log::Handlers::logToCout);
+    Ghulbus::Log::setLogHandler(async_logger);
+    Ghulbus::Log::setLogLevel(Ghulbus::LogLevel::Info);
+#else
     Ghulbus::Log::setLogHandler(Ghulbus::Log::Handlers::logToWindowsDebugger);
     Ghulbus::Log::setLogLevel(Ghulbus::LogLevel::Trace);
+#endif
 
     CryptoPP::AESEncryption aes_encrypt;
     byte key[] = { 'C', 'O', 'O', 'L', 'K', 'E', 'Y', '!' };

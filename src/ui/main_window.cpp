@@ -137,4 +137,5 @@ void MainWindow::onFileScanChecksumUpdate(std::uintmax_t n_files)
 {
     m_pimpl->statusBar.progressLabel->setText(QString::fromStdString("Scanning " + std::to_string(n_files) + "/" +
                                                                      std::to_string(m_pimpl->numberOfFilesInIndex)));
+    m_pimpl->statusBar.progressBar->setValue(n_files);
 }

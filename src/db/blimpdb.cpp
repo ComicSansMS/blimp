@@ -1,4 +1,5 @@
 #include <db/blimpdb.hpp>
+#include <db/table/table_layout.hpp>
 #include <db/table/blimp_properties.hpp>
 #include <db/table/sqlite_master.hpp>
 
@@ -30,12 +31,16 @@ inline bool constexpr sqlpp11_debug()
 void createBlimpPropertiesTable(sqlpp::sqlite3::connection& db)
 {
     auto const prop_tab = blimpdb::BlimpProperties{};
-    db.execute("CREATE TABLE blimp_properties(id TEXT PRIMARY KEY, value TEXT);");
+    db.execute(blimpdb::table_layout::blimp_properties());
+    db.execute(blimpdb::table_layout::user_selection());
+    db.execute(blimpdb::table_layout::indexed_locations());
+    db.execute(blimpdb::table_layout::file_element());
+    db.execute(blimpdb::table_layout::file_contents());
+    db.execute(blimpdb::table_layout::snapshot());
+    db.execute(blimpdb::table_layout::snapshot_contents());
+
     db(sqlpp::insert_into(prop_tab).set(prop_tab.id    = "version",
                                         prop_tab.value = std::to_string(BlimpVersion::version())));
-
-    db.execute("CREATE TABLE file_index (id INTEGER PRIMARY KEY, path TEXT NOT NULL);");
-
 }
 
 
