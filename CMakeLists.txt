@@ -11,6 +11,15 @@ endif()
 find_package(Qt5Widgets 5.7 REQUIRED)
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost REQUIRED filesystem)
+# TODO workaround for bug in CMake's FindBoost module
+get_target_property(boost_fs_release Boost::filesystem IMPORTED_LOCATION_RELEASE)
+set_property(TARGET Boost::filesystem PROPERTY IMPORTED_LOCATION_RELWITHDEBINFO ${boost_fs_release})
+set_property(TARGET Boost::filesystem PROPERTY IMPORTED_LOCATION_MINSIZEREL ${boost_fs_release})
+unset(boost_fs_release)
+get_target_property(boost_sys_release Boost::system IMPORTED_LOCATION_RELEASE)
+set_property(TARGET Boost::system PROPERTY IMPORTED_LOCATION_RELWITHDEBINFO ${boost_sys_release})
+set_property(TARGET Boost::system PROPERTY IMPORTED_LOCATION_MINSIZEREL ${boost_sys_release})
+unset(boost_sys_release)
 
 set(BLIMP_SOURCE_DIRECTORY ${PROJECT_SOURCE_DIR}/src)
 set(BLIMP_INCLUDE_DIRECTORY ${PROJECT_SOURCE_DIR}/src)
@@ -66,6 +75,7 @@ add_executable(blimp
     ${BLIMP_QT_MOC_HEADER_FILES}
     ${BLIMP_QT_MOC_SOURCE_FILES}
 )
+
 target_include_directories(blimp PUBLIC ${BLIMP_INCLUDE_DIRECTORY})
 target_link_libraries(blimp PUBLIC
     aws-cpp-sdk-glacier
