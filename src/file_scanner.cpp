@@ -8,7 +8,6 @@
 #include <hex.h>
 #include <sha.h>
 
-#include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/filesystem.hpp>
 
 #include <algorithm>
@@ -42,13 +41,12 @@ void FileScanner::addFilesForIndexing(std::vector<std::string> const& files_to_a
     GHULBUS_LOG(Debug, "Adding " << files_to_add.size() << " item(s) for indexing.");
     std::lock_guard<std::mutex> lk(m_mtx);
     m_filesToIndex.insert(begin(m_filesToIndex), begin(files_to_add), end(files_to_add));
-    m_condvar.notify_one();
 }
 
-void FileScanner::startScanning()
+void FileScanner::startScanning(std::unique_ptr<BlimpDB> blimpdb)
 {
     m_cancelScanning.store(false);
-    m_scanThread = std::thread([this]() {
+    m_scanThread = std::thread([this, blimpdb = std::move(blimpdb)]() {
         std::vector<std::string> files_to_process;
         {
             std::unique_lock<std::mutex> lk(m_mtx);
@@ -70,6 +68,12 @@ void FileScanner::startScanning()
         auto const indexingDurationSeconds = std::chrono::duration_cast<std::chrono::seconds>(indexingDuration);
         GHULBUS_LOG(Debug, "Indexing complete after " << indexingDurationSeconds.count() << " seconds."
                            " Found " << m_fileIndexList.size() << " file(s).");
+        m_timings.indexDbUpdateStart = std::chrono::steady_clock::now();
+        blimpdb->updateFileIndex(m_fileIndexList);
+        m_timings.indexDbUpdateFinished = std::chrono::steady_clock::now();
+        auto const indexDbUpdateDuration = m_timings.indexDbUpdateFinished - m_timings.indexDbUpdateStart;
+        auto const indexDbUpdateDurationMsecs = std::chrono::duration_cast<std::chrono::milliseconds>(indexDbUpdateDuration);
+        GHULBUS_LOG(Debug, "Database file index updated. Took " << indexDbUpdateDurationMsecs.count() << " milliseconds.");
         emit indexingCompleted(m_fileIndexList.size());
 
         std::size_t files_processed = 0;
@@ -82,6 +86,7 @@ void FileScanner::startScanning()
                 break;
             }
         }
+        emit checksumCalculationCompleted();
     });
 }
 

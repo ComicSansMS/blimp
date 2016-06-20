@@ -84,6 +84,8 @@ MainWindow::MainWindow()
             this, &MainWindow::onFileScanIndexingUpdate, Qt::QueuedConnection);
     connect(&m_pimpl->fileScanner, &FileScanner::checksumCalculationUpdate,
             this, &MainWindow::onFileScanChecksumUpdate, Qt::QueuedConnection);
+    connect(&m_pimpl->fileScanner, &FileScanner::checksumCalculationCompleted,
+            this, &MainWindow::onFileScanChecksumCompleted, Qt::QueuedConnection);
     show();
 }
 
@@ -124,7 +126,7 @@ void MainWindow::onButtonClicked()
     m_pimpl->statusBar.progressBar->setMaximum(0);
     m_pimpl->statusBar.progressBar->show();
     m_pimpl->statusBar.progressLabel->setText("Indexing...");
-    m_pimpl->fileScanner.startScanning();
+    m_pimpl->fileScanner.startScanning(std::move(m_pimpl->blimpdb));
     m_pimpl->cancelButton->setEnabled(true);
 }
 
@@ -154,8 +156,8 @@ void MainWindow::onOpenClicked()
 
 void MainWindow::onCancelClicked()
 {
-    m_pimpl->fileScanner.cancelScanning();
     m_pimpl->cancelButton->setEnabled(false);
+    m_pimpl->fileScanner.cancelScanning();
     m_pimpl->okButton->setEnabled(true);
     m_pimpl->treeview->setEnabled(true);
     m_pimpl->statusBar.progressBar->hide();
@@ -168,7 +170,7 @@ void MainWindow::onFileScanIndexingCompleted(std::uintmax_t n_files)
     m_pimpl->numberOfFilesInIndex = n_files;
     m_pimpl->statusBar.progressLabel->setText(QString::fromStdString("Scanning 0/" + std::to_string(n_files)));
     m_pimpl->statusBar.progressBar->setMinimum(0);
-    m_pimpl->statusBar.progressBar->setMaximum(n_files);
+    m_pimpl->statusBar.progressBar->setMaximum(static_cast<int>(n_files));
 }
 
 void MainWindow::onFileScanIndexingUpdate(std::uintmax_t n_files)
@@ -181,4 +183,8 @@ void MainWindow::onFileScanChecksumUpdate(std::uintmax_t n_files)
     m_pimpl->statusBar.progressLabel->setText(QString::fromStdString("Scanning " + std::to_string(n_files) + "/" +
                                                                      std::to_string(m_pimpl->numberOfFilesInIndex)));
     m_pimpl->statusBar.progressBar->setValue(n_files);
+}
+
+void MainWindow::onFileScanChecksumCompleted()
+{
 }

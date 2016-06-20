@@ -1,6 +1,8 @@
 #ifndef BLIMP_INCLUDE_GUARD_DB_BLIMPDB_HPP
 #define BLIMP_INCLUDE_GUARD_DB_BLIMPDB_HPP
 
+#include <file_info.hpp>
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -24,6 +26,8 @@ public:
     void setUserSelection(std::vector<std::string> const& selected_files);
 
     std::vector<std::string> getUserSelection();
+
+    void updateFileIndex(std::vector<FileInfo> const& fresh_index);
 private:
     void createNewFileDatabase(std::string const& db_filename);
     void openExistingFileDatabase(std::string const& db_filename);

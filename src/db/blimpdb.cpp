@@ -1,6 +1,8 @@
 #include <db/blimpdb.hpp>
 #include <db/table/table_layout.hpp>
 #include <db/table/blimp_properties.hpp>
+#include <db/table/file_element.hpp>
+#include <db/table/indexed_locations.hpp>
 #include <db/table/user_selection.hpp>
 #include <db/table/sqlite_master.hpp>
 
@@ -145,4 +147,30 @@ std::vector<std::string> BlimpDB::getUserSelection()
         ret.push_back(r.path);
     }
     return ret;
+}
+
+void BlimpDB::updateFileIndex(std::vector<FileInfo> const& fresh_index)
+{
+    auto const tab_loc = blimpdb::IndexedLocations{};
+    auto const tab_fel = blimpdb::FileElement{};
+    auto& db = m_pimpl->db;
+    db.start_transaction();
+    auto q_find_loc_prepped = select(tab_loc.locationId).from(tab_loc);
+    auto q_insert_loc_prepped = insert_into(tab_loc);
+    auto q_insert_fel_prepped = insert_into(tab_fel);
+    for(auto const& finfo : fresh_index) {
+        auto const q_find_loc = q_find_loc_prepped.where(tab_loc.path == finfo.path.string());
+        auto location_row = db(q_find_loc);
+        if(location_row.empty())
+        {
+            db(q_insert_loc_prepped.set(tab_loc.path = finfo.path.string()));
+            location_row = db(q_find_loc);
+        }
+        GHULBUS_ASSERT(!location_row.empty());
+        auto const location_id = location_row.begin()->locationId;
+        db(q_insert_fel_prepped.set(tab_fel.locationId   = location_id,
+                                    tab_fel.size         = static_cast<int64_t>(finfo.size),
+                                    tab_fel.modifiedDate = "0"));
+    }
+    db.commit_transaction();
 }

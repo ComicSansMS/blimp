@@ -3,11 +3,13 @@
 
 #include <QObject>
 
-#include <boost/filesystem.hpp>
+#include <db/blimpdb.hpp>
+#include <file_info.hpp>
+
+#include <boost/filesystem/path.hpp>
 
 #include <atomic>
 #include <chrono>
-#include <condition_variable>
 #include <ctime>
 #include <cstdint>
 #include <deque>
@@ -18,23 +20,18 @@
 class FileScanner : public QObject
 {
     Q_OBJECT
-public:
-    struct FileInfo {
-        boost::filesystem::path path;
-        std::uintmax_t size;
-        std::chrono::system_clock::time_point modified_time;
-    };
 private:
+    std::atomic<bool> m_cancelScanning;
     std::deque<std::string> m_filesToIndex;
     std::mutex m_mtx;
-    std::condition_variable m_condvar;
     std::thread m_scanThread;
     std::vector<FileInfo> m_fileIndexList;
     std::vector<boost::filesystem::path> m_filesSkippedInIndexing;
-    std::atomic<bool> m_cancelScanning;
     struct Timings {
         std::chrono::steady_clock::time_point indexingStart;
         std::chrono::steady_clock::time_point indexingFinished;
+        std::chrono::steady_clock::time_point indexDbUpdateStart;
+        std::chrono::steady_clock::time_point indexDbUpdateFinished;
     } m_timings;
 public:
     FileScanner();
@@ -44,15 +41,15 @@ public:
 
     void addFilesForIndexing(std::vector<std::string> const& files_to_add);
 
-public slots:
-    void startScanning();
+    void startScanning(std::unique_ptr<BlimpDB> blimpdb);
     void cancelScanning();
 
 signals:
-    void indexingCompleted(std::uintmax_t n_files_in_list);
+    void indexingCompleted(std::uintmax_t n_files_indexed);
     void indexingUpdate(std::uintmax_t n_files_indexed);
 
     void checksumCalculationUpdate(std::uintmax_t n_total_files_processed);
+    void checksumCalculationCompleted();
 
 private:
     void indexFilesRecursively(boost::filesystem::path const& file_to_scan);
