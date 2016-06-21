@@ -19,9 +19,9 @@ inline constexpr char const* file_contents()
     return R"(
         CREATE TABLE file_contents (
             content_id  INTEGER PRIMARY KEY,
-            file_id     INTEGER NOT NULL        REFERENCES file_element(file_id)
-                                                ON UPDATE RESTRICT ON DELETE RESTRICT,
-            hash        TEXT    UNIQUE,
+            file_id     INTEGER NOT NULL            REFERENCES file_element(file_id)
+                                                    ON UPDATE RESTRICT ON DELETE RESTRICT,
+            hash        TEXT    UNIQUE NOT NULL,
             hash_type   INTEGER NOT NULL
         );)";
 }
@@ -44,7 +44,7 @@ inline constexpr char const* indexed_locations()
     return R"(
         CREATE TABLE indexed_locations (
             location_id INTEGER PRIMARY KEY,
-            path        TEXT    NOT NULL
+            path        TEXT    UNIQUE NOT NULL
         );)";
 
 }
@@ -74,7 +74,7 @@ inline constexpr char const* user_selection()
 {
     return R"(
         CREATE TABLE user_selection (
-            path    TEXT    NOT NULL
+            path    TEXT    UNIQUE NOT NULL
         );)";
 
 }

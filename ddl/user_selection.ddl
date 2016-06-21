@@ -1,3 +1,3 @@
 CREATE TABLE user_selection (
-    path    TEXT    NOT NULL
+    path    TEXT    UNIQUE NOT NULL
 );

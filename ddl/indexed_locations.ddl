@@ -1,4 +1,4 @@
 CREATE TABLE indexed_locations (
     location_id INTEGER PRIMARY KEY,
-    path        TEXT    NOT NULL
+    path        TEXT    UNIQUE NOT NULL
 );
