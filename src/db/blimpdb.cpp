@@ -154,26 +154,8 @@ void BlimpDB::updateFileIndex(std::vector<FileInfo> const& fresh_index)
     auto const tab_loc = blimpdb::IndexedLocations{};
     auto const tab_fel = blimpdb::FileElement{};
     auto& db = m_pimpl->db;
+    db.execute("PRAGMA synchronous = OFF");
     db.start_transaction();
-    /*
-    auto q_find_loc_prepped = select(tab_loc.locationId).from(tab_loc);
-    auto q_insert_loc_prepped = insert_into(tab_loc);
-    auto q_insert_fel_prepped = insert_into(tab_fel);
-    for(auto const& finfo : fresh_index) {
-        auto const q_find_loc = q_find_loc_prepped.where(tab_loc.path == finfo.path.string());
-        auto location_row = db(q_find_loc);
-        if(location_row.empty())
-        {
-            db(q_insert_loc_prepped.set(tab_loc.path = finfo.path.string()));
-            location_row = db(q_find_loc);
-        }
-        GHULBUS_ASSERT(!location_row.empty());
-        auto const location_id = location_row.begin()->locationId;
-        db(q_insert_fel_prepped.set(tab_fel.locationId   = location_id,
-                                    tab_fel.fileSize     = static_cast<int64_t>(finfo.size),
-                                    tab_fel.modifiedDate = "0"));
-    }
-    /*/
     auto q_find_loc_param = select(tab_loc.locationId).from(tab_loc).where(tab_loc.path == parameter(tab_loc.path));
     auto q_find_loc_prepped = db.prepare(q_find_loc_param);
     auto q_insert_loc_param = insert_into(tab_loc).set(tab_loc.path = parameter(tab_loc.path));
@@ -199,6 +181,6 @@ void BlimpDB::updateFileIndex(std::vector<FileInfo> const& fresh_index)
         q_insert_fel_prepped.params.modifiedDate = "0";
         db(q_insert_fel_prepped);
     }
-    //*/
     db.commit_transaction();
+    db.execute("PRAGMA synchronous = FULL");
 }
