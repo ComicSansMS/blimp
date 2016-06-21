@@ -42,7 +42,7 @@ namespace blimpdb
       };
       using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
     };
-    struct Size
+    struct FileSize
     {
       struct _alias_t
       {
@@ -51,9 +51,9 @@ namespace blimpdb
         template<typename T>
         struct _member_t
           {
-            T size;
-            T& operator()() { return size; }
-            const T& operator()() const { return size; }
+            T fileSize;
+            T& operator()() { return fileSize; }
+            const T& operator()() const { return fileSize; }
           };
       };
       using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
@@ -79,7 +79,7 @@ namespace blimpdb
   struct FileElement: sqlpp::table_t<FileElement,
                FileElement_::FileId,
                FileElement_::LocationId,
-               FileElement_::Size,
+               FileElement_::FileSize,
                FileElement_::ModifiedDate>
   {
     struct _alias_t

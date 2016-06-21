@@ -155,6 +155,7 @@ void BlimpDB::updateFileIndex(std::vector<FileInfo> const& fresh_index)
     auto const tab_fel = blimpdb::FileElement{};
     auto& db = m_pimpl->db;
     db.start_transaction();
+    /*
     auto q_find_loc_prepped = select(tab_loc.locationId).from(tab_loc);
     auto q_insert_loc_prepped = insert_into(tab_loc);
     auto q_insert_fel_prepped = insert_into(tab_fel);
@@ -169,8 +170,35 @@ void BlimpDB::updateFileIndex(std::vector<FileInfo> const& fresh_index)
         GHULBUS_ASSERT(!location_row.empty());
         auto const location_id = location_row.begin()->locationId;
         db(q_insert_fel_prepped.set(tab_fel.locationId   = location_id,
-                                    tab_fel.size         = static_cast<int64_t>(finfo.size),
+                                    tab_fel.fileSize     = static_cast<int64_t>(finfo.size),
                                     tab_fel.modifiedDate = "0"));
     }
+    /*/
+    auto q_find_loc_param = select(tab_loc.locationId).from(tab_loc).where(tab_loc.path == parameter(tab_loc.path));
+    auto q_find_loc_prepped = db.prepare(q_find_loc_param);
+    auto q_insert_loc_param = insert_into(tab_loc).set(tab_loc.path = parameter(tab_loc.path));
+    auto q_insert_loc_prepped = db.prepare(q_insert_loc_param);
+    auto q_insert_fel_param = insert_into(tab_fel).set(tab_fel.locationId   = parameter(tab_fel.locationId),
+        tab_fel.fileSize     = parameter(tab_fel.fileSize),
+        tab_fel.modifiedDate = parameter(tab_fel.modifiedDate));
+    auto q_insert_fel_prepped = db.prepare(q_insert_fel_param);
+    for(auto const& finfo : fresh_index) {
+        auto const path_string = finfo.path.string();
+        q_find_loc_prepped.params.path = path_string;
+        auto location_row = db(q_find_loc_prepped);
+        if(location_row.empty())
+        {
+            q_insert_loc_prepped.params.path = path_string;
+            db(q_insert_loc_prepped);
+            location_row = db(q_find_loc_prepped);
+        }
+        GHULBUS_ASSERT(!location_row.empty());
+        auto const location_id = location_row.begin()->locationId;
+        q_insert_fel_prepped.params.locationId   = location_id;
+        q_insert_fel_prepped.params.fileSize     = static_cast<int64_t>(finfo.size);
+        q_insert_fel_prepped.params.modifiedDate = "0";
+        db(q_insert_fel_prepped);
+    }
+    //*/
     db.commit_transaction();
 }
