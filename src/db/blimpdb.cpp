@@ -165,7 +165,7 @@ void BlimpDB::updateFileIndex(std::vector<FileInfo> const& fresh_index)
                                                        tab_fel.modifiedDate = parameter(tab_fel.modifiedDate));
     auto q_insert_fel_prepped = db.prepare(q_insert_fel_param);
     for(auto const& finfo : fresh_index) {
-        auto const path_string = finfo.path.string();
+        auto const path_string = finfo.path.generic_string();
         q_find_loc_prepped.params.path = path_string;
         auto location_row = db(q_find_loc_prepped);
         if(location_row.empty())
