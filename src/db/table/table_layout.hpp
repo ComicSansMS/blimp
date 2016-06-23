@@ -5,6 +5,8 @@ namespace blimpdb
 {
 namespace table_layout
 {
+inline namespace v10000
+{
 /** A key/value store for saving generic properties.
  */
 inline constexpr char const* blimp_properties()
@@ -101,6 +103,7 @@ inline constexpr char const* snapshot_contents()
             content_id  INTEGER NOT NULL    REFERENCES file_contents(content_id)
                                             ON UPDATE RESTRICT ON DELETE RESTRICT
         );)";
+}
 }
 }
 }
