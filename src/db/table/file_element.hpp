@@ -62,17 +62,17 @@ namespace blimpdb
     {
       struct _alias_t
       {
-        static constexpr const char _literal[] =  "modified_date";
+        static constexpr const char _literal[] =  "modified_time";
         using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
         template<typename T>
         struct _member_t
           {
-            T modifiedDate;
-            T& operator()() { return modifiedDate; }
-            const T& operator()() const { return modifiedDate; }
+            T modifiedTime;
+            T& operator()() { return modifiedTime; }
+            const T& operator()() const { return modifiedTime; }
           };
       };
-      using _traits = sqlpp::make_traits<sqlpp::text, sqlpp::tag::require_insert>;
+      using _traits = sqlpp::make_traits<sqlpp::time_point, sqlpp::tag::require_insert>;
     };
   }
 

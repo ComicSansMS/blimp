@@ -60,7 +60,7 @@ inline constexpr char const* file_element()
             location_id     INTEGER NOT NULL        REFERENCES indexed_locations(location_id)
                                                     ON UPDATE RESTRICT ON DELETE RESTRICT,
             file_size       INTEGER NOT NULL,
-            modified_date   TEXT    NOT NULL
+            modified_time   TEXT    NOT NULL
         );)";
 
 }
