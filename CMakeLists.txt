@@ -26,11 +26,13 @@ set(BLIMP_INCLUDE_DIRECTORY ${PROJECT_SOURCE_DIR}/src)
 
 set(BLIMP_SOURCE_FILES
     ${BLIMP_SOURCE_DIRECTORY}/main.cpp
+    ${BLIMP_SOURCE_DIRECTORY}/file_hash.cpp
     ${BLIMP_SOURCE_DIRECTORY}/db/blimpdb.cpp
 )
 
 set(BLIMP_HEADER_FILES
     ${BLIMP_SOURCE_DIRECTORY}/exceptions.hpp
+    ${BLIMP_SOURCE_DIRECTORY}/file_hash.hpp
     ${BLIMP_SOURCE_DIRECTORY}/file_info.hpp
     ${BLIMP_SOURCE_DIRECTORY}/version.hpp
     ${BLIMP_SOURCE_DIRECTORY}/db/blimpdb.hpp

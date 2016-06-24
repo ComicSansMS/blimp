@@ -1,11 +1,11 @@
 #include <file_scanner.hpp>
+#include <file_hash.hpp>
 
 #include <gbBase/Assert.hpp>
 #include <gbBase/Log.hpp>
 
 #include <gsl.h>
 
-#include <hex.h>
 #include <sha.h>
 
 #include <boost/filesystem.hpp>
@@ -13,17 +13,6 @@
 #include <algorithm>
 #include <array>
 #include <cstdio>
-
-std::string digestToString(std::array<gsl::byte, CryptoPP::SHA256::DIGESTSIZE> const& digest)
-{
-    CryptoPP::HexEncoder enc;
-    enc.Put(reinterpret_cast<byte const*>(digest.data()), digest.size());
-    std::array<char, 2*CryptoPP::SHA256::DIGESTSIZE + 1> buffer;
-    auto const res = enc.Get(reinterpret_cast<byte*>(buffer.data()), 2*digest.size());
-    GHULBUS_ASSERT(res == 2*digest.size());
-    buffer.back() = '\0';
-    return std::string(buffer.data());
-}
 
 FileScanner::FileScanner()
 {
@@ -147,9 +136,9 @@ void FileScanner::calculateHash(FileInfo const& file_info)
         hash_calc.Update(reinterpret_cast<byte const*>(buffer.data()), bytes_read);
     }
     if(bytes_left == 0) {
-        std::array<gsl::byte, CryptoPP::SHA256::DIGESTSIZE> hash;
-        hash_calc.Final(reinterpret_cast<byte*>(hash.data()));
-        GHULBUS_LOG(Debug, "Hash for " << file_info.path << " is " << digestToString(hash) << ".");
+        Hash hash;
+        hash_calc.Final(reinterpret_cast<byte*>(hash.digest.data()));
+        GHULBUS_LOG(Debug, "Hash for " << file_info.path << " is " << to_string(hash) << ".");
     }
 }
 
