@@ -73,6 +73,8 @@ void createBlimpPropertiesTable(sqlpp::sqlite3::connection& db)
     db.execute(blimpdb::table_layout::snapshot());
     db.execute(blimpdb::table_layout::snapshot_contents());
 
+    db.execute("CREATE INDEX idx_file_element_locations ON file_element (location_id);");
+
     db(insert_into(prop_tab).set(prop_tab.id    = "version",
                                  prop_tab.value = std::to_string(BlimpVersion::version())));
 }
@@ -160,6 +162,9 @@ void BlimpDB::updateFileIndex(std::vector<FileInfo> const& fresh_index)
     auto q_find_loc_prepped = db.prepare(q_find_loc_param);
     auto q_insert_loc_param = insert_into(tab_loc).set(tab_loc.path = parameter(tab_loc.path));
     auto q_insert_loc_prepped = db.prepare(q_insert_loc_param);
+    auto q_find_fel_param = select(all_of(tab_fel)).from(tab_fel)
+                                                   .where(tab_fel.locationId == parameter(tab_fel.locationId));
+    auto q_find_fel_prepped = db.prepare(q_find_fel_param);
     auto q_insert_fel_param = insert_into(tab_fel).set(tab_fel.locationId   = parameter(tab_fel.locationId),
                                                        tab_fel.fileSize     = parameter(tab_fel.fileSize),
                                                        tab_fel.modifiedTime = parameter(tab_fel.modifiedTime));
@@ -170,12 +175,21 @@ void BlimpDB::updateFileIndex(std::vector<FileInfo> const& fresh_index)
         auto location_row = db(q_find_loc_prepped);
         if(location_row.empty())
         {
+            // first time we see this location; add an entry to indexed_locations
             q_insert_loc_prepped.params.path = path_string;
             db(q_insert_loc_prepped);
             location_row = db(q_find_loc_prepped);
         }
         GHULBUS_ASSERT(!location_row.empty());
         auto const location_id = location_row.begin()->locationId;
+
+        q_find_fel_prepped.params.locationId = location_id;
+        for(auto const& fel_row : db(q_find_fel_prepped)) {
+            auto ts = fel_row.modifiedTime;
+            if(finfo.size != fel_row.fileSize) {
+            }
+        }
+
         q_insert_fel_prepped.params.locationId   = location_id;
         q_insert_fel_prepped.params.fileSize     = static_cast<int64_t>(finfo.size);
         auto const casted_tp = std::chrono::time_point_cast<std::chrono::microseconds>(finfo.modified_time);
