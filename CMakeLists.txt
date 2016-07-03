@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.2)
 
 project(blimp)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(external)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
@@ -94,7 +96,7 @@ target_link_libraries(blimp PUBLIC
 target_include_directories(blimp PUBLIC external/date)
 target_include_directories(blimp PUBLIC external/sqlpp11/include)
 target_include_directories(blimp PUBLIC external/sqlpp11-connector-sqlite3/include)
-target_compile_definitions(blimp PUBLIC _CRT_SECURE_NO_WARNINGS)
+target_compile_definitions(blimp PUBLIC $<$<STREQUAL:$<CXX_COMPILER_ID>,MSVC>:_CRT_SECURE_NO_WARNINGS>)
 
 if(WIN32)
     getQt5Dlls(Qt5::Widgets qt_DLLS)
