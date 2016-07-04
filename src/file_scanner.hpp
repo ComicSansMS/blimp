@@ -4,6 +4,7 @@
 #include <QObject>
 
 #include <db/blimpdb.hpp>
+#include <file_hash.hpp>
 #include <file_info.hpp>
 
 #include <boost/filesystem/path.hpp>
@@ -32,6 +33,10 @@ private:
         std::chrono::steady_clock::time_point indexingFinished;
         std::chrono::steady_clock::time_point indexDbUpdateStart;
         std::chrono::steady_clock::time_point indexDbUpdateFinished;
+        std::chrono::steady_clock::time_point hashingStart;
+        std::chrono::steady_clock::time_point hashingFinished;
+        std::chrono::steady_clock::time_point hashingDbUpdateStart;
+        std::chrono::steady_clock::time_point hashingDbUpdateFinished;
     } m_timings;
 public:
     FileScanner();
@@ -54,7 +59,7 @@ signals:
 private:
     void indexFilesRecursively(boost::filesystem::path const& file_to_scan);
 
-    void calculateHash(FileInfo const& file_info);
+    Hash calculateHash(FileInfo const& file_info);
 };
 
 #endif

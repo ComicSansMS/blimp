@@ -1,5 +1,6 @@
 #include <file_scanner.hpp>
-#include <file_hash.hpp>
+
+#include <exceptions.hpp>
 
 #include <gbBase/Assert.hpp>
 #include <gbBase/Log.hpp>
@@ -55,19 +56,22 @@ void FileScanner::startScanning(std::unique_ptr<BlimpDB> blimpdb)
         m_timings.indexingFinished = std::chrono::steady_clock::now();
         auto const indexingDuration = m_timings.indexingFinished - m_timings.indexingStart;
         auto const indexingDurationSeconds = std::chrono::duration_cast<std::chrono::seconds>(indexingDuration);
-        GHULBUS_LOG(Debug, "Indexing complete after " << indexingDurationSeconds.count() << " seconds."
+        GHULBUS_LOG(Info, "Indexing complete after " << indexingDurationSeconds.count() << " seconds."
                            " Found " << m_fileIndexList.size() << " file(s).");
         m_timings.indexDbUpdateStart = std::chrono::steady_clock::now();
-        blimpdb->updateFileIndex(m_fileIndexList);
+        auto const file_index_info = blimpdb->updateFileIndex(m_fileIndexList);
         m_timings.indexDbUpdateFinished = std::chrono::steady_clock::now();
         auto const indexDbUpdateDuration = m_timings.indexDbUpdateFinished - m_timings.indexDbUpdateStart;
         auto const indexDbUpdateDurationMsecs = std::chrono::duration_cast<std::chrono::milliseconds>(indexDbUpdateDuration);
-        GHULBUS_LOG(Debug, "Database file index updated. Took " << indexDbUpdateDurationMsecs.count() << " milliseconds.");
+        GHULBUS_LOG(Info, "Database file index updated. Took " << indexDbUpdateDurationMsecs.count() << " milliseconds.");
         emit indexingCompleted(m_fileIndexList.size());
 
         std::size_t files_processed = 0;
+        std::vector<Hash> hashes;
+        hashes.reserve(m_fileIndexList.size());
+        m_timings.hashingStart = std::chrono::steady_clock::now();
         for(auto const& f : m_fileIndexList) {
-            calculateHash(f);
+            hashes.push_back(calculateHash(f));
             ++files_processed;
             emit checksumCalculationUpdate(files_processed);
             if(m_cancelScanning) {
@@ -75,6 +79,16 @@ void FileScanner::startScanning(std::unique_ptr<BlimpDB> blimpdb)
                 break;
             }
         }
+        m_timings.hashingFinished = std::chrono::steady_clock::now();
+        auto const hashingDuration = m_timings.hashingFinished - m_timings.hashingStart;
+        auto const hashingDurationSeconds = std::chrono::duration_cast<std::chrono::seconds>(hashingDuration);
+        GHULBUS_LOG(Info, "Hashing took " << hashingDurationSeconds.count() << " seconds.");
+        m_timings.hashingDbUpdateStart = std::chrono::steady_clock::now();
+        blimpdb->updateFileContents(file_index_info, hashes);
+        m_timings.hashingDbUpdateFinished = std::chrono::steady_clock::now();
+        auto const hashingDbUpdateDuration = m_timings.hashingDbUpdateFinished - m_timings.hashingDbUpdateStart;
+        auto const hashingDbUpdateDurationMsecs = std::chrono::duration_cast<std::chrono::milliseconds>(hashingDbUpdateDuration);
+        GHULBUS_LOG(Info, "Database file contents updated. Took " << hashingDbUpdateDurationMsecs.count() << " milliseconds.");
         emit checksumCalculationCompleted();
     });
 }
@@ -114,10 +128,11 @@ void FileScanner::indexFilesRecursively(boost::filesystem::path const& file_to_s
     emit indexingUpdate(m_fileIndexList.size());
 }
 
-void FileScanner::calculateHash(FileInfo const& file_info)
+Hash FileScanner::calculateHash(FileInfo const& file_info)
 {
     auto fin = std::fopen(file_info.path.string().c_str(), "rb");
     if(!fin) {
+        GHULBUS_THROW(Ghulbus::Exceptions::IOError(), "Error opening file " + file_info.path.string() + ".");
     }
     auto fin_guard = gsl::finally([&fin]() { int ret = std::fclose(fin); GHULBUS_ASSERT(ret == 0); });
     std::size_t const HASH_BUFFER_SIZE = 4096;
@@ -129,17 +144,16 @@ void FileScanner::calculateHash(FileInfo const& file_info)
         std::size_t const bytes_to_read = std::min(bytes_left, buffer.size());
         auto const bytes_read = std::fread(buffer.data(), sizeof(gsl::byte), bytes_to_read, fin);
         if(bytes_read != bytes_to_read) {
-            GHULBUS_LOG(Error, "Error while reading file " << file_info.path << "; " << bytes_read << ".");
-            break;
+            GHULBUS_THROW(Ghulbus::Exceptions::IOError(), "Error while reading " + file_info.path.string() + ".");
         }
         bytes_left -= bytes_read;
         hash_calc.Update(reinterpret_cast<byte const*>(buffer.data()), bytes_read);
     }
-    if(bytes_left == 0) {
-        Hash hash;
-        hash_calc.Final(reinterpret_cast<byte*>(hash.digest.data()));
-        GHULBUS_LOG(Debug, "Hash for " << file_info.path << " is " << to_string(hash) << ".");
-    }
+    GHULBUS_ASSERT(bytes_left == 0);
+    Hash hash;
+    hash_calc.Final(reinterpret_cast<byte*>(hash.digest.data()));
+    GHULBUS_LOG(Debug, "Hash for " << file_info.path << " is " << to_string(hash) << ".");
+    return hash;
 }
 
 void FileScanner::cancelScanning()

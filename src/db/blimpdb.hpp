@@ -1,6 +1,7 @@
 #ifndef BLIMP_INCLUDE_GUARD_DB_BLIMPDB_HPP
 #define BLIMP_INCLUDE_GUARD_DB_BLIMPDB_HPP
 
+#include <file_hash.hpp>
 #include <file_info.hpp>
 
 #include <memory>
@@ -13,6 +14,15 @@ public:
     enum class OpenMode {
         OpenExisting,
         CreateNew
+    };
+
+    using FileElementId = std::uint64_t;
+
+    struct FileIndexInfo {
+        std::uint64_t id;
+        FileSyncStatus status;
+
+        FileIndexInfo(std::uint64_t n_id, FileSyncStatus n_status) : id(n_id), status(n_status) {}
     };
 private:
     struct Pimpl;
@@ -27,7 +37,9 @@ public:
 
     std::vector<std::string> getUserSelection();
 
-    void updateFileIndex(std::vector<FileInfo> const& fresh_index);
+    std::vector<FileIndexInfo> updateFileIndex(std::vector<FileInfo> const& fresh_index);
+
+    void updateFileContents(std::vector<FileIndexInfo> const& index_info, std::vector<Hash> const& hashes);
 private:
     void createNewFileDatabase(std::string const& db_filename);
     void openExistingFileDatabase(std::string const& db_filename);
