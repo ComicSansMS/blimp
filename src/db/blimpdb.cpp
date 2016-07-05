@@ -69,10 +69,13 @@ void createBlimpPropertiesTable(sqlpp::sqlite3::connection& db)
     db.execute(blimpdb::table_layout::blimp_properties());
     db.execute(blimpdb::table_layout::user_selection());
     db.execute(blimpdb::table_layout::indexed_locations());
-    db.execute(blimpdb::table_layout::file_element());
     db.execute(blimpdb::table_layout::file_contents());
+    db.execute(blimpdb::table_layout::file_element());
     db.execute(blimpdb::table_layout::snapshot());
     db.execute(blimpdb::table_layout::snapshot_contents());
+
+    // todo: remove
+    db.execute("INSERT INTO file_contents (hash, hash_type) VALUES (\"foo\", 1)");
 
     db.execute("CREATE INDEX idx_file_element_locations ON file_element (location_id);");
 
@@ -169,6 +172,7 @@ std::vector<BlimpDB::FileIndexInfo> BlimpDB::updateFileIndex(std::vector<FileInf
                                                    .where(tab_fel.locationId == parameter(tab_fel.locationId));
     auto q_find_fel_prepped = db.prepare(q_find_fel_param);
     auto q_insert_fel_param = insert_into(tab_fel).set(tab_fel.locationId   = parameter(tab_fel.locationId),
+                                                       tab_fel.contentId    = 1,
                                                        tab_fel.fileSize     = parameter(tab_fel.fileSize),
                                                        tab_fel.modifiedTime = parameter(tab_fel.modifiedTime));
     auto q_insert_fel_prepped = db.prepare(q_insert_fel_param);
@@ -218,8 +222,7 @@ void BlimpDB::updateFileContents(std::vector<FileIndexInfo> const& index_info, s
     GHULBUS_ASSERT_PRD(index_info.size() == hashes.size());
     auto& db = m_pimpl->db;
     auto const tab_fco = blimpdb::FileContents{};
-    auto const q_fco_insert_param = insert_into(tab_fco).set(tab_fco.fileId   = parameter(tab_fco.fileId),
-                                                             tab_fco.hash     = parameter(tab_fco.hash),
+    auto const q_fco_insert_param = insert_into(tab_fco).set(tab_fco.hash     = parameter(tab_fco.hash),
                                                              tab_fco.hashType = 1);
     auto q_fco_insert_prepped = db.prepare(q_fco_insert_param);
     db.start_transaction();
@@ -227,7 +230,6 @@ void BlimpDB::updateFileContents(std::vector<FileIndexInfo> const& index_info, s
     {
         try {
         if(index_info[i].status != FileSyncStatus::Unchanged) {
-            q_fco_insert_prepped.params.fileId = index_info[i].id;
             q_fco_insert_prepped.params.hash   = to_string(hashes[i]);
             db(q_fco_insert_prepped);
         }
