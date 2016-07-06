@@ -37,9 +37,8 @@ public:
 
     std::vector<std::string> getUserSelection();
 
-    std::vector<FileIndexInfo> updateFileIndex(std::vector<FileInfo> const& fresh_index);
-
-    void updateFileContents(std::vector<FileIndexInfo> const& index_info, std::vector<Hash> const& hashes);
+    std::vector<FileIndexInfo> updateFileIndex(std::vector<FileInfo> const& fresh_index,
+                                               std::vector<Hash> const& hashes);
 private:
     void createNewFileDatabase(std::string const& db_filename);
     void openExistingFileDatabase(std::string const& db_filename);

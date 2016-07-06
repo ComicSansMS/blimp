@@ -58,13 +58,9 @@ void FileScanner::startScanning(std::unique_ptr<BlimpDB> blimpdb)
         auto const indexingDurationSeconds = std::chrono::duration_cast<std::chrono::seconds>(indexingDuration);
         GHULBUS_LOG(Info, "Indexing complete after " << indexingDurationSeconds.count() << " seconds."
                            " Found " << m_fileIndexList.size() << " file(s).");
-        m_timings.indexDbUpdateStart = std::chrono::steady_clock::now();
-        auto const file_index_info = blimpdb->updateFileIndex(m_fileIndexList);
-        m_timings.indexDbUpdateFinished = std::chrono::steady_clock::now();
-        auto const indexDbUpdateDuration = m_timings.indexDbUpdateFinished - m_timings.indexDbUpdateStart;
-        auto const indexDbUpdateDurationMsecs = std::chrono::duration_cast<std::chrono::milliseconds>(indexDbUpdateDuration);
-        GHULBUS_LOG(Info, "Database file index updated. Took " << indexDbUpdateDurationMsecs.count() << " milliseconds.");
         emit indexingCompleted(m_fileIndexList.size());
+
+        // todo: check db to calculate index diff with earlier scan
 
         std::size_t files_processed = 0;
         std::vector<Hash> hashes;
@@ -83,12 +79,13 @@ void FileScanner::startScanning(std::unique_ptr<BlimpDB> blimpdb)
         auto const hashingDuration = m_timings.hashingFinished - m_timings.hashingStart;
         auto const hashingDurationSeconds = std::chrono::duration_cast<std::chrono::seconds>(hashingDuration);
         GHULBUS_LOG(Info, "Hashing took " << hashingDurationSeconds.count() << " seconds.");
-        m_timings.hashingDbUpdateStart = std::chrono::steady_clock::now();
-        blimpdb->updateFileContents(file_index_info, hashes);
-        m_timings.hashingDbUpdateFinished = std::chrono::steady_clock::now();
-        auto const hashingDbUpdateDuration = m_timings.hashingDbUpdateFinished - m_timings.hashingDbUpdateStart;
-        auto const hashingDbUpdateDurationMsecs = std::chrono::duration_cast<std::chrono::milliseconds>(hashingDbUpdateDuration);
-        GHULBUS_LOG(Info, "Database file contents updated. Took " << hashingDbUpdateDurationMsecs.count() << " milliseconds.");
+
+        m_timings.indexDbUpdateStart = std::chrono::steady_clock::now();
+        auto const file_index_info = blimpdb->updateFileIndex(m_fileIndexList, hashes);
+        m_timings.indexDbUpdateFinished = std::chrono::steady_clock::now();
+        auto const indexDbUpdateDuration = m_timings.indexDbUpdateFinished - m_timings.indexDbUpdateStart;
+        auto const indexDbUpdateDurationMsecs = std::chrono::duration_cast<std::chrono::milliseconds>(indexDbUpdateDuration);
+        GHULBUS_LOG(Info, "Database file index updated. Took " << indexDbUpdateDurationMsecs.count() << " milliseconds.");
         emit checksumCalculationCompleted();
     });
 }
@@ -152,7 +149,7 @@ Hash FileScanner::calculateHash(FileInfo const& file_info)
     GHULBUS_ASSERT(bytes_left == 0);
     Hash hash;
     hash_calc.Final(reinterpret_cast<byte*>(hash.digest.data()));
-    GHULBUS_LOG(Debug, "Hash for " << file_info.path << " is " << to_string(hash) << ".");
+    GHULBUS_LOG(Trace, "Hash for " << file_info.path << " is " << to_string(hash) << ".");
     return hash;
 }
 

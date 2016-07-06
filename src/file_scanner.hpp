@@ -31,12 +31,10 @@ private:
     struct Timings {
         std::chrono::steady_clock::time_point indexingStart;
         std::chrono::steady_clock::time_point indexingFinished;
-        std::chrono::steady_clock::time_point indexDbUpdateStart;
-        std::chrono::steady_clock::time_point indexDbUpdateFinished;
         std::chrono::steady_clock::time_point hashingStart;
         std::chrono::steady_clock::time_point hashingFinished;
-        std::chrono::steady_clock::time_point hashingDbUpdateStart;
-        std::chrono::steady_clock::time_point hashingDbUpdateFinished;
+        std::chrono::steady_clock::time_point indexDbUpdateStart;
+        std::chrono::steady_clock::time_point indexDbUpdateFinished;
     } m_timings;
 public:
     FileScanner();

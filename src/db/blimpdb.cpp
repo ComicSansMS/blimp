@@ -155,11 +155,14 @@ std::vector<std::string> BlimpDB::getUserSelection()
     return ret;
 }
 
-std::vector<BlimpDB::FileIndexInfo> BlimpDB::updateFileIndex(std::vector<FileInfo> const& fresh_index)
+std::vector<BlimpDB::FileIndexInfo> BlimpDB::updateFileIndex(std::vector<FileInfo> const& fresh_index,
+                                                             std::vector<Hash> const& hashes)
 {
+    GHULBUS_PRECONDITION(fresh_index.size() == hashes.size());
     std::vector<FileIndexInfo> ret;
     ret.reserve(fresh_index.size());
     auto const tab_loc = blimpdb::IndexedLocations{};
+    auto const tab_fco = blimpdb::FileContents{};
     auto const tab_fel = blimpdb::FileElement{};
     auto& db = m_pimpl->db;
     db.execute("PRAGMA synchronous = OFF");
@@ -168,15 +171,25 @@ std::vector<BlimpDB::FileIndexInfo> BlimpDB::updateFileIndex(std::vector<FileInf
     auto q_find_loc_prepped = db.prepare(q_find_loc_param);
     auto q_insert_loc_param = insert_into(tab_loc).set(tab_loc.path = parameter(tab_loc.path));
     auto q_insert_loc_prepped = db.prepare(q_insert_loc_param);
+    auto q_find_fco_param = select(tab_fco.contentId).from(tab_fco)
+                                                     .where(tab_fco.hash     == parameter(tab_fco.hash) &&
+                                                            tab_fco.hashType == 1);
+    auto q_find_fco_prepped = db.prepare(q_find_fco_param);
+    auto q_insert_fco_param = insert_into(tab_fco).set(tab_fco.hash     = parameter(tab_fco.hash),
+                                                       tab_fco.hashType = 1);
+    auto q_insert_fco_prepped = db.prepare(q_insert_fco_param);
     auto q_find_fel_param = select(all_of(tab_fel)).from(tab_fel)
                                                    .where(tab_fel.locationId == parameter(tab_fel.locationId));
     auto q_find_fel_prepped = db.prepare(q_find_fel_param);
     auto q_insert_fel_param = insert_into(tab_fel).set(tab_fel.locationId   = parameter(tab_fel.locationId),
-                                                       tab_fel.contentId    = 1,
+                                                       tab_fel.contentId    = parameter(tab_fel.contentId),
                                                        tab_fel.fileSize     = parameter(tab_fel.fileSize),
                                                        tab_fel.modifiedTime = parameter(tab_fel.modifiedTime));
     auto q_insert_fel_prepped = db.prepare(q_insert_fel_param);
-    for(auto const& finfo : fresh_index) {
+
+    for(std::size_t i = 0; i < fresh_index.size(); ++i) {
+        auto const& finfo = fresh_index[i];
+        std::string const fhash = to_string(hashes[i]);
         FileSyncStatus sync_status = FileSyncStatus::Unchanged;
         auto const path_string = finfo.path.generic_string();
         q_find_loc_prepped.params.path = path_string;
@@ -204,7 +217,19 @@ std::vector<BlimpDB::FileIndexInfo> BlimpDB::updateFileIndex(std::vector<FileInf
         }
         ret.emplace_back(location_id, sync_status);
 
+        q_find_fco_prepped.params.hash = fhash;
+        auto const hash_row = db(q_find_fco_prepped);
+        std::size_t content_id;
+        if(!hash_row.empty()) {
+            content_id = hash_row.front().contentId;
+        } else {
+            // first time we see this hash; add an entry to file_contents
+            q_insert_fco_prepped.params.hash = fhash;
+            content_id = db(q_insert_fco_prepped);
+        }
+
         q_insert_fel_prepped.params.locationId   = location_id;
+        q_insert_fel_prepped.params.contentId    = content_id;
         q_insert_fel_prepped.params.fileSize     = static_cast<int64_t>(finfo.size);
         auto const casted_tp = std::chrono::time_point_cast<std::chrono::microseconds>(finfo.modified_time);
         q_insert_fel_prepped.params.modifiedTime = casted_tp;
@@ -213,30 +238,5 @@ std::vector<BlimpDB::FileIndexInfo> BlimpDB::updateFileIndex(std::vector<FileInf
     db.commit_transaction();
     db.execute("PRAGMA synchronous = FULL");
 
-    // todo: determine removed files from last snapshot
     return ret;
-}
-
-void BlimpDB::updateFileContents(std::vector<FileIndexInfo> const& index_info, std::vector<Hash> const& hashes)
-{
-    GHULBUS_ASSERT_PRD(index_info.size() == hashes.size());
-    auto& db = m_pimpl->db;
-    auto const tab_fco = blimpdb::FileContents{};
-    auto const q_fco_insert_param = insert_into(tab_fco).set(tab_fco.hash     = parameter(tab_fco.hash),
-                                                             tab_fco.hashType = 1);
-    auto q_fco_insert_prepped = db.prepare(q_fco_insert_param);
-    db.start_transaction();
-    for(std::size_t i = 0; i < index_info.size(); ++i)
-    {
-        try {
-        if(index_info[i].status != FileSyncStatus::Unchanged) {
-            q_fco_insert_prepped.params.hash   = to_string(hashes[i]);
-            db(q_fco_insert_prepped);
-        }
-        } catch(sqlpp::exception& e) {
-            // todo: two files might have the same hash
-            GHULBUS_LOG(Error, "Exception: " << e.what() << ".");
-        }
-    }
-    db.commit_transaction();
 }

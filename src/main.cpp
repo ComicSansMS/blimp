@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
     auto gbbase_guard = gsl::finally([]() { Ghulbus::Log::shutdownLogging(); });
 #if BOOST_COMP_MSVC && !defined NDEBUG
     Ghulbus::Log::setLogHandler(Ghulbus::Log::Handlers::logToWindowsDebugger);
-    Ghulbus::Log::setLogLevel(Ghulbus::LogLevel::Trace);
+    Ghulbus::Log::setLogLevel(Ghulbus::LogLevel::Debug);
 #else
     Ghulbus::Log::Handlers::LogAsync async_logger(Ghulbus::Log::Handlers::logToCout);
     Ghulbus::Log::setLogHandler(async_logger);
