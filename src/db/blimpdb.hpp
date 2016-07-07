@@ -37,6 +37,8 @@ public:
 
     std::vector<std::string> getUserSelection();
 
+    void compareFileIndex(std::vector<FileInfo> const& fresh_index);
+
     std::vector<FileIndexInfo> updateFileIndex(std::vector<FileInfo> const& fresh_index,
                                                std::vector<Hash> const& hashes);
 private:

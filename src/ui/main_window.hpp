@@ -18,6 +18,7 @@ public slots:
     void onButtonClicked();
     void onOpenClicked();
     void onCancelClicked();
+    void onRescanClicked();
     void onFileScanIndexingUpdate(std::uintmax_t n_files);
     void onFileScanIndexingCompleted(std::uintmax_t n_files);
     void onFileScanChecksumUpdate(std::uintmax_t n_files);

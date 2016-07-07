@@ -7,6 +7,8 @@
 
 #include <file_scanner.hpp>
 
+#include <gbBase/Assert.hpp>
+
 #include <QBoxLayout>
 #include <QFileDialog>
 #include <QLabel>
@@ -27,6 +29,7 @@ struct MainWindow::Pimpl
     QBoxLayout* layout;
     QPushButton* okButton;
     QPushButton* openButton;
+    QPushButton* rescanButton;
     QPushButton* cancelButton;
     struct StatusBarWidgets {
         QLabel* progressLabel;
@@ -41,6 +44,7 @@ struct MainWindow::Pimpl
          layout(new QBoxLayout(QBoxLayout::Direction::TopToBottom, central)),
          okButton(new QPushButton("Write checks to DB", parent)),
          openButton(new QPushButton("Open db file from disk", parent)),
+         rescanButton(new QPushButton("Rescan files", parent)),
          cancelButton(new QPushButton("Cancel scanning", parent))
     {
     }
@@ -69,6 +73,8 @@ MainWindow::MainWindow()
     m_pimpl->layout->addWidget(m_pimpl->treeview);
     m_pimpl->layout->addWidget(m_pimpl->okButton);
     m_pimpl->layout->addWidget(m_pimpl->openButton);
+    m_pimpl->layout->addWidget(m_pimpl->rescanButton);
+    m_pimpl->rescanButton->setEnabled(false);
     m_pimpl->layout->addWidget(m_pimpl->cancelButton);
     m_pimpl->cancelButton->setEnabled(false);
 
@@ -77,6 +83,7 @@ MainWindow::MainWindow()
     connect(m_pimpl->treeview, &QTreeView::clicked, m_pimpl->model, &FileSystemModel::itemClicked);
     connect(m_pimpl->okButton, &QPushButton::clicked, this, &MainWindow::onButtonClicked);
     connect(m_pimpl->openButton, &QPushButton::clicked, this, &MainWindow::onOpenClicked);
+    connect(m_pimpl->rescanButton, &QPushButton::clicked, this, &MainWindow::onRescanClicked);
     connect(&m_pimpl->fileScanner, &FileScanner::indexingCompleted,
             this, &MainWindow::onFileScanIndexingCompleted, Qt::QueuedConnection);
     connect(m_pimpl->cancelButton, &QPushButton::clicked, this, &MainWindow::onCancelClicked);
@@ -152,6 +159,7 @@ void MainWindow::onOpenClicked()
         return;
     }
     m_pimpl->model->setCheckedFilePaths(m_pimpl->blimpdb->getUserSelection());
+    m_pimpl->rescanButton->setEnabled(true);
 }
 
 void MainWindow::onCancelClicked()
@@ -163,6 +171,22 @@ void MainWindow::onCancelClicked()
     m_pimpl->statusBar.progressBar->hide();
     m_pimpl->statusBar.progressLabel->setText("");
     statusBar()->showMessage("Scanning canceled.", 5000);
+}
+
+void MainWindow::onRescanClicked()
+{
+    auto const checked_files = m_pimpl->model->getCheckedFilePaths();
+    m_pimpl->okButton->setEnabled(false);
+    m_pimpl->treeview->setEnabled(false);
+    GHULBUS_ASSERT(m_pimpl->blimpdb);
+    m_pimpl->blimpdb->setUserSelection(checked_files);
+    m_pimpl->fileScanner.addFilesForIndexing(checked_files);
+    m_pimpl->statusBar.progressBar->setMinimum(0);
+    m_pimpl->statusBar.progressBar->setMaximum(0);
+    m_pimpl->statusBar.progressBar->show();
+    m_pimpl->statusBar.progressLabel->setText("Indexing...");
+    m_pimpl->fileScanner.startScanning(std::move(m_pimpl->blimpdb));
+    m_pimpl->cancelButton->setEnabled(true);
 }
 
 void MainWindow::onFileScanIndexingCompleted(std::uintmax_t n_files)

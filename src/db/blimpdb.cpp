@@ -74,9 +74,6 @@ void createBlimpPropertiesTable(sqlpp::sqlite3::connection& db)
     db.execute(blimpdb::table_layout::snapshot());
     db.execute(blimpdb::table_layout::snapshot_contents());
 
-    // todo: remove
-    db.execute("INSERT INTO file_contents (hash, hash_type) VALUES (\"foo\", 1)");
-
     db.execute("CREATE INDEX idx_file_element_locations ON file_element (location_id);");
 
     db(insert_into(prop_tab).set(prop_tab.id    = "version",
@@ -155,6 +152,60 @@ std::vector<std::string> BlimpDB::getUserSelection()
     return ret;
 }
 
+void BlimpDB::compareFileIndex(std::vector<FileInfo> const& fresh_index)
+{
+    // look up file_element for each element in fresh index
+    // -> each item is either unchanged, new or updated
+    // find elements from last snapshot not in fresh index
+    // -> deleted
+    auto const tab_loc = blimpdb::IndexedLocations{};
+    auto const tab_fel = blimpdb::FileElement{};
+    auto& db = m_pimpl->db;
+    auto const q_find_elements_param =
+        select(tab_fel.fileId, tab_fel.fileSize, tab_fel.modifiedDate)
+            .from(tab_fel.join(tab_loc).on(tab_fel.locationId == select(tab_loc.locationId)))
+            .where(tab_loc.path == parameter(tab_loc.path));
+    auto q_find_elements_prepped = db.prepare(q_find_elements_param);
+
+    for(auto const& finfo : fresh_index) {
+        auto const path_string = finfo.path.generic_string();
+        q_find_elements_prepped.params.path = path_string;
+        auto rows = db(q_find_elements_prepped);
+        int64_t referred_id = -1;
+        auto const sync_status = [&]() -> FileSyncStatus
+            {
+                if(rows.empty()) {
+                    return FileSyncStatus::NewFile;
+                } else {
+                    std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds> newest_time;
+                    for(auto const& r : rows) {
+                        std::uintmax_t const fsize = r.fileSize;
+                        std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds> const ftime
+                            = r.modifiedDate;
+                        if(fsize == finfo.size && ftime == finfo.modified_time) {
+                            referred_id = r.fileId;
+                            return FileSyncStatus::Unchanged;
+                        }
+                        if(ftime > newest_time) {
+                            referred_id = r.fileId;
+                        }
+                    }
+                    return FileSyncStatus::FileChanged;
+                }
+            }();
+        if(sync_status == FileSyncStatus::NewFile) {
+            GHULBUS_LOG(Info, "New file " << path_string);
+        } else if(sync_status == FileSyncStatus::Unchanged) {
+            GHULBUS_ASSERT(referred_id != -1);
+            GHULBUS_LOG(Info, "Unchanged file " << referred_id << " " << path_string);
+        } else {
+            GHULBUS_ASSERT(sync_status == FileSyncStatus::FileChanged);
+            GHULBUS_ASSERT(referred_id != -1);
+            GHULBUS_LOG(Info, "File changed " << referred_id << " " << path_string);
+        }
+    }
+}
+
 std::vector<BlimpDB::FileIndexInfo> BlimpDB::updateFileIndex(std::vector<FileInfo> const& fresh_index,
                                                              std::vector<Hash> const& hashes)
 {
@@ -184,7 +235,7 @@ std::vector<BlimpDB::FileIndexInfo> BlimpDB::updateFileIndex(std::vector<FileInf
     auto q_insert_fel_param = insert_into(tab_fel).set(tab_fel.locationId   = parameter(tab_fel.locationId),
                                                        tab_fel.contentId    = parameter(tab_fel.contentId),
                                                        tab_fel.fileSize     = parameter(tab_fel.fileSize),
-                                                       tab_fel.modifiedTime = parameter(tab_fel.modifiedTime));
+                                                       tab_fel.modifiedDate = parameter(tab_fel.modifiedDate));
     auto q_insert_fel_prepped = db.prepare(q_insert_fel_param);
 
     for(std::size_t i = 0; i < fresh_index.size(); ++i) {
@@ -210,7 +261,7 @@ std::vector<BlimpDB::FileIndexInfo> BlimpDB::updateFileIndex(std::vector<FileInf
             // todo: sync status could be Unchanged or FileChanged
             q_find_fel_prepped.params.locationId = location_id;
             for(auto const& fel_row : db(q_find_fel_prepped)) {
-                auto ts = fel_row.modifiedTime;
+                auto ts = fel_row.modifiedDate;
                 if(finfo.size != fel_row.fileSize) {
                 }
             }
@@ -232,7 +283,7 @@ std::vector<BlimpDB::FileIndexInfo> BlimpDB::updateFileIndex(std::vector<FileInf
         q_insert_fel_prepped.params.contentId    = content_id;
         q_insert_fel_prepped.params.fileSize     = static_cast<int64_t>(finfo.size);
         auto const casted_tp = std::chrono::time_point_cast<std::chrono::microseconds>(finfo.modified_time);
-        q_insert_fel_prepped.params.modifiedTime = casted_tp;
+        q_insert_fel_prepped.params.modifiedDate = casted_tp;
         db(q_insert_fel_prepped);
     }
     db.commit_transaction();

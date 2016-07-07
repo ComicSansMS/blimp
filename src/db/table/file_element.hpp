@@ -82,9 +82,9 @@ namespace blimpdb
         template<typename T>
         struct _member_t
           {
-            T modifiedTime;
-            T& operator()() { return modifiedTime; }
-            const T& operator()() const { return modifiedTime; }
+            T modifiedDate;
+            T& operator()() { return modifiedDate; }
+            const T& operator()() const { return modifiedDate; }
           };
       };
       using _traits = sqlpp::make_traits<sqlpp::time_point, sqlpp::tag::require_insert>;
