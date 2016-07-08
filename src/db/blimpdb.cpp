@@ -152,7 +152,7 @@ std::vector<std::string> BlimpDB::getUserSelection()
     return ret;
 }
 
-void BlimpDB::compareFileIndex(std::vector<FileInfo> const& fresh_index)
+FileIndexDiff BlimpDB::compareFileIndex(std::vector<FileInfo> const& fresh_index)
 {
     // look up file_element for each element in fresh index
     // -> each item is either unchanged, new or updated
@@ -167,15 +167,21 @@ void BlimpDB::compareFileIndex(std::vector<FileInfo> const& fresh_index)
             .where(tab_loc.path == parameter(tab_loc.path));
     auto q_find_elements_prepped = db.prepare(q_find_elements_param);
 
+    FileIndexDiff diff;
+    diff.index_files.reserve(fresh_index.size());
     for(auto const& finfo : fresh_index) {
         auto const path_string = finfo.path.generic_string();
         q_find_elements_prepped.params.path = path_string;
         auto rows = db(q_find_elements_prepped);
-        int64_t referred_id = -1;
-        auto const sync_status = [&]() -> FileSyncStatus
+        auto const element_diff = [&]() -> FileIndexDiff::ElementDiff
             {
+                FileIndexDiff::ElementDiff ret;
                 if(rows.empty()) {
-                    return FileSyncStatus::NewFile;
+                    ret.sync_status = FileSyncStatus::NewFile;
+                    ret.reference_db_id = -1;
+                    ret.reference_size = 0;
+                    ret.reference_modified_time = std::chrono::system_clock::time_point();
+                    return ret;
                 } else {
                     std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds> newest_time;
                     for(auto const& r : rows) {
@@ -183,27 +189,37 @@ void BlimpDB::compareFileIndex(std::vector<FileInfo> const& fresh_index)
                         std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds> const ftime
                             = r.modifiedDate;
                         if(fsize == finfo.size && ftime == finfo.modified_time) {
-                            referred_id = r.fileId;
-                            return FileSyncStatus::Unchanged;
+                            ret.sync_status = FileSyncStatus::Unchanged;
+                            ret.reference_db_id = r.fileId;
+                            ret.reference_size = r.fileSize;
+                            ret.reference_modified_time = ftime;
+                            return ret;
                         }
                         if(ftime > newest_time) {
-                            referred_id = r.fileId;
+                            ret.reference_db_id = r.fileId;
+                            ret.reference_size = r.fileSize;
+                            ret.reference_modified_time = ftime;
                         }
                     }
-                    return FileSyncStatus::FileChanged;
+                    ret.sync_status = FileSyncStatus::FileChanged;
+                    return ret;
                 }
             }();
-        if(sync_status == FileSyncStatus::NewFile) {
-            GHULBUS_LOG(Info, "New file " << path_string);
-        } else if(sync_status == FileSyncStatus::Unchanged) {
-            GHULBUS_ASSERT(referred_id != -1);
-            GHULBUS_LOG(Info, "Unchanged file " << referred_id << " " << path_string);
+        if(element_diff.sync_status == FileSyncStatus::NewFile) {
+            GHULBUS_LOG(Trace, "New file " << path_string);
+            
+        } else if(element_diff.sync_status == FileSyncStatus::Unchanged) {
+            GHULBUS_ASSERT(element_diff.reference_db_id != -1);
+            GHULBUS_LOG(Trace, "Unchanged file " << element_diff.reference_db_id << " " << path_string);
         } else {
-            GHULBUS_ASSERT(sync_status == FileSyncStatus::FileChanged);
-            GHULBUS_ASSERT(referred_id != -1);
-            GHULBUS_LOG(Info, "File changed " << referred_id << " " << path_string);
+            GHULBUS_ASSERT(element_diff.sync_status == FileSyncStatus::FileChanged);
+            GHULBUS_ASSERT(element_diff.reference_db_id != -1);
+            GHULBUS_LOG(Trace, "File changed " << element_diff.reference_db_id << " " << path_string);
         }
+        
+        diff.index_files.push_back(element_diff);
     }
+    return diff;
 }
 
 std::vector<BlimpDB::FileIndexInfo> BlimpDB::updateFileIndex(std::vector<FileInfo> const& fresh_index,

@@ -61,7 +61,8 @@ void FileScanner::startScanning(std::unique_ptr<BlimpDB> blimpdb)
         emit indexingCompleted(m_fileIndexList.size());
 
         // todo: check db to calculate index diff with earlier scan
-        blimpdb->compareFileIndex(m_fileIndexList);
+        auto const file_diff = blimpdb->compareFileIndex(m_fileIndexList);
+        file_diff.index_files.size();
 
         std::size_t files_processed = 0;
         std::vector<Hash> hashes;
