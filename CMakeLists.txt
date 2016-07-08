@@ -97,6 +97,7 @@ target_include_directories(blimp PUBLIC external/date)
 target_include_directories(blimp PUBLIC external/sqlpp11/include)
 target_include_directories(blimp PUBLIC external/sqlpp11-connector-sqlite3/include)
 target_compile_definitions(blimp PUBLIC $<$<STREQUAL:$<CXX_COMPILER_ID>,MSVC>:_CRT_SECURE_NO_WARNINGS>)
+target_compile_options(blimp PUBLIC $<$<AND:$<STREQUAL:$<CXX_COMPILER_ID>,MSVC>,$<NOT:$<CONFIG:Debug>>>:/Zo>)
 
 if(WIN32)
     getQt5Dlls(Qt5::Widgets qt_DLLS)
