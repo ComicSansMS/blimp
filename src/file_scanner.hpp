@@ -31,6 +31,8 @@ private:
     struct Timings {
         std::chrono::steady_clock::time_point indexingStart;
         std::chrono::steady_clock::time_point indexingFinished;
+        std::chrono::steady_clock::time_point indexDiffComputationStart;
+        std::chrono::steady_clock::time_point indexDiffComputationFinished;
         std::chrono::steady_clock::time_point hashingStart;
         std::chrono::steady_clock::time_point hashingFinished;
         std::chrono::steady_clock::time_point indexDbUpdateStart;
