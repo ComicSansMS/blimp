@@ -27,6 +27,7 @@ private:
     std::mutex m_mtx;
     std::thread m_scanThread;
     std::vector<FileInfo> m_fileIndexList;
+    FileIndexDiff m_fileDiff;
     std::vector<boost::filesystem::path> m_filesSkippedInIndexing;
     struct Timings {
         std::chrono::steady_clock::time_point indexingStart;
@@ -48,6 +49,9 @@ public:
 
     void startScanning(std::unique_ptr<BlimpDB> blimpdb);
     void cancelScanning();
+
+    std::vector<FileInfo> const& getIndexList() const;
+    FileIndexDiff const& getIndexDiff() const;
 
 signals:
     void indexingCompleted(std::uintmax_t n_files_indexed);

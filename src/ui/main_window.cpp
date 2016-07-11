@@ -1,6 +1,7 @@
 
 #include <ui/main_window.hpp>
 
+#include <ui/file_diff_model.hpp>
 #include <ui/filesystem_model.hpp>
 
 #include <db/blimpdb.hpp>
@@ -12,6 +13,7 @@
 #include <QBoxLayout>
 #include <QFileDialog>
 #include <QLabel>
+#include <QListView>
 #include <QMessageBox>
 #include <QProgressBar>
 #include <QPushButton>
@@ -26,6 +28,8 @@ struct MainWindow::Pimpl
     QWidget* central;
     QTreeView* treeview;
     FileSystemModel* model;
+    QTreeView* diffview;
+    FileDiffModel* diffmodel;
     QBoxLayout* layout;
     QPushButton* okButton;
     QPushButton* openButton;
@@ -41,6 +45,7 @@ struct MainWindow::Pimpl
 
     Pimpl(MainWindow* parent)
         :central(new QWidget(parent)), treeview(new QTreeView), model(new FileSystemModel(parent)),
+         diffview(new QTreeView), diffmodel(new FileDiffModel(parent)),
          layout(new QBoxLayout(QBoxLayout::Direction::TopToBottom, central)),
          okButton(new QPushButton("Write checks to DB", parent)),
          openButton(new QPushButton("Open db file from disk", parent)),
@@ -70,7 +75,14 @@ MainWindow::MainWindow()
     m_pimpl->treeview->setColumnWidth(0, 400);
     m_pimpl->treeview->hideColumn(1);
 
+    m_pimpl->diffview->setModel(m_pimpl->diffmodel);
+    m_pimpl->diffview->resize(width(), height());
+    
+    //m_pimpl->diffview->hide();
+    //m_pimpl->treeview->hide();
+
     m_pimpl->layout->addWidget(m_pimpl->treeview);
+    m_pimpl->layout->addWidget(m_pimpl->diffview);
     m_pimpl->layout->addWidget(m_pimpl->okButton);
     m_pimpl->layout->addWidget(m_pimpl->openButton);
     m_pimpl->layout->addWidget(m_pimpl->rescanButton);
@@ -211,4 +223,6 @@ void MainWindow::onFileScanChecksumUpdate(std::uintmax_t n_files)
 
 void MainWindow::onFileScanChecksumCompleted()
 {
+    m_pimpl->fileScanner.cancelScanning();
+    m_pimpl->diffmodel->setFileIndexData(m_pimpl->fileScanner.getIndexList(), m_pimpl->fileScanner.getIndexDiff());
 }

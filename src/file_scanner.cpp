@@ -62,12 +62,11 @@ void FileScanner::startScanning(std::unique_ptr<BlimpDB> blimpdb)
 
         // todo: check db to calculate index diff with earlier scan
         m_timings.indexDiffComputationStart = std::chrono::steady_clock::now();
-        auto const file_diff = blimpdb->compareFileIndex(m_fileIndexList);
+        m_fileDiff = blimpdb->compareFileIndex(m_fileIndexList);
         m_timings.indexDiffComputationFinished = std::chrono::steady_clock::now();
         auto const indexDiffDuration = m_timings.indexDiffComputationFinished - m_timings.indexDiffComputationStart;
         auto const indexDiffDurationMsecs = std::chrono::duration_cast<std::chrono::milliseconds>(indexDiffDuration);
         GHULBUS_LOG(Info, "Index diffing complete after " << indexDiffDurationMsecs.count() << " milliseconds.");
-        file_diff.index_files.size();
 
         std::size_t files_processed = 0;
         std::vector<Hash> hashes;
@@ -166,4 +165,15 @@ void FileScanner::cancelScanning()
         m_cancelScanning.store(true);
         m_scanThread.join();
     }
+}
+
+
+std::vector<FileInfo> const& FileScanner::getIndexList() const
+{
+    return m_fileIndexList;
+}
+
+FileIndexDiff const& FileScanner::getIndexDiff() const
+{
+    return m_fileDiff;
 }
