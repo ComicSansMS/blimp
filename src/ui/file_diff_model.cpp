@@ -2,6 +2,10 @@
 
 #include <gbBase/Assert.hpp>
 
+#include <QDateTime>
+#include <QLocale>
+
+#include <chrono>
 
 FileDiffModel::FileDiffModel(QObject* parent)
     :QStandardItemModel(parent)
@@ -40,10 +44,15 @@ void FileDiffModel::setFileIndexData(std::vector<FileInfo> const& file_index, Fi
             default:                          return "Unknown";
             }
         };
+        auto const time_format_str = QLocale::system().dateTimeFormat(QLocale::ShortFormat);
+        auto date_to_string = [time_format_str](std::chrono::system_clock::time_point const& timep) -> QString {
+            auto const timep_t = std::chrono::system_clock::to_time_t(timep);
+            return QString(QDateTime::fromTime_t(timep_t, Qt::UTC).toLocalTime().toString(time_format_str));
+        };
         setItem(i, 1, set_item_props(new QStandardItem(std::to_string(file_index[i].size).c_str())));
-        setItem(i, 2, set_item_props(new QStandardItem("<Date>")));
+        setItem(i, 2, set_item_props(new QStandardItem(date_to_string(file_index[i].modified_time))));
         setItem(i, 3, set_item_props(new QStandardItem(sync_to_string(file_index_diff.index_files[i].sync_status))));
         setItem(i, 4, set_item_props(new QStandardItem(std::to_string(file_index_diff.index_files[i].reference_size).c_str())));
-        setItem(i, 5, set_item_props(new QStandardItem("<OldDate>")));
+        setItem(i, 5, set_item_props(new QStandardItem(date_to_string(file_index_diff.index_files[i].reference_modified_time))));
     }
 }
