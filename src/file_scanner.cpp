@@ -60,14 +60,15 @@ void FileScanner::startScanning(std::unique_ptr<BlimpDB> blimpdb)
                            " Found " << m_fileIndexList.size() << " file(s).");
         emit indexingCompleted(m_fileIndexList.size());
 
-        // todo: check db to calculate index diff with earlier scan
         m_timings.indexDiffComputationStart = std::chrono::steady_clock::now();
         m_fileDiff = blimpdb->compareFileIndex(m_fileIndexList);
         m_timings.indexDiffComputationFinished = std::chrono::steady_clock::now();
         auto const indexDiffDuration = m_timings.indexDiffComputationFinished - m_timings.indexDiffComputationStart;
         auto const indexDiffDurationMsecs = std::chrono::duration_cast<std::chrono::milliseconds>(indexDiffDuration);
         GHULBUS_LOG(Info, "Index diffing complete after " << indexDiffDurationMsecs.count() << " milliseconds.");
+        emit indexDiffCompleted();
 
+        /*
         std::size_t files_processed = 0;
         std::vector<Hash> hashes;
         hashes.reserve(m_fileIndexList.size());
@@ -93,6 +94,7 @@ void FileScanner::startScanning(std::unique_ptr<BlimpDB> blimpdb)
         auto const indexDbUpdateDurationMsecs = std::chrono::duration_cast<std::chrono::milliseconds>(indexDbUpdateDuration);
         GHULBUS_LOG(Info, "Database file index updated. Took " << indexDbUpdateDurationMsecs.count() << " milliseconds.");
         emit checksumCalculationCompleted();
+        */
     });
 }
 
@@ -167,6 +169,10 @@ void FileScanner::cancelScanning()
     }
 }
 
+void FileScanner::joinScanning()
+{
+    m_scanThread.join();
+}
 
 std::vector<FileInfo> const& FileScanner::getIndexList() const
 {

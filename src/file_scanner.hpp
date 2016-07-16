@@ -49,6 +49,7 @@ public:
 
     void startScanning(std::unique_ptr<BlimpDB> blimpdb);
     void cancelScanning();
+    void joinScanning();
 
     std::vector<FileInfo> const& getIndexList() const;
     FileIndexDiff const& getIndexDiff() const;
@@ -56,6 +57,8 @@ public:
 signals:
     void indexingCompleted(std::uintmax_t n_files_indexed);
     void indexingUpdate(std::uintmax_t n_files_indexed);
+
+    void indexDiffCompleted();
 
     void checksumCalculationUpdate(std::uintmax_t n_total_files_processed);
     void checksumCalculationCompleted();
