@@ -8,51 +8,118 @@
 #include <chrono>
 
 FileDiffModel::FileDiffModel(QObject* parent)
-    :QStandardItemModel(parent)
+    :QAbstractItemModel(parent)
 {
-    setColumnCount(6);
-    setHorizontalHeaderItem(0, new QStandardItem("Name"));
-    setHorizontalHeaderItem(1, new QStandardItem("Size"));
-    setHorizontalHeaderItem(2, new QStandardItem("Changed"));
-    setHorizontalHeaderItem(3, new QStandardItem());
-    setHorizontalHeaderItem(4, new QStandardItem("Old Size"));
-    setHorizontalHeaderItem(5, new QStandardItem("Old Changed"));
 }
 
 void FileDiffModel::setFileIndexData(std::vector<FileInfo> const& file_index, FileIndexDiff const& file_index_diff)
 {
     GHULBUS_PRECONDITION(file_index.size() == file_index_diff.index_files.size());
-    for(int i = 0; i < file_index.size(); ++i)
-    {
-        auto set_item_props = [](QStandardItem* item, bool checkable=false) -> QStandardItem* {
-                item->setCheckable(checkable);
-                item->setEditable(false);
-                item->setDragEnabled(false);
-                item->setDropEnabled(false);
-                return item;
-            };
+    beginResetModel();
+    m_file_index = file_index;
+    m_file_index_diff = file_index_diff;
+    endResetModel();
+}
+
+Qt::ItemFlags FileDiffModel::flags(QModelIndex const& index) const
+{
+    GHULBUS_ASSERT(index.isValid());
+    auto const flags = Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsUserCheckable | Qt::ItemNeverHasChildren;
+    return flags;
+}
+
+bool FileDiffModel::hasChildren(QModelIndex const& index) const
+{
+    return (index.isValid()) ? false : true;
+}
+
+QModelIndex FileDiffModel::index(int row, int column, QModelIndex const& parent) const
+{
+    GHULBUS_ASSERT(!parent.isValid());
+    return createIndex(row, column);
+}
+
+QModelIndex FileDiffModel::parent(QModelIndex const& index) const
+{
+    return QModelIndex();
+}
+
+int FileDiffModel::rowCount(QModelIndex const& index) const
+{
+    return (index.isValid()) ? 0 : static_cast<int>(m_file_index.size());
+}
+
+int FileDiffModel::columnCount(QModelIndex const& index) const
+{
+    return (index.isValid()) ? 0 : 6;
+}
+
+QVariant FileDiffModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+    if(orientation == Qt::Orientation::Horizontal) {
+        if(role == Qt::DisplayRole)
         {
-            auto name_item = new QStandardItem(file_index[i].path.generic_string().c_str());
-            setItem(i, 0, set_item_props(name_item, true));
-        }
-        auto sync_to_string = [](FileSyncStatus sync_status) -> char const* {
-            switch(sync_status) {
-            case FileSyncStatus::Unchanged:   return "Unchanged";
-            case FileSyncStatus::NewFile:     return "New";
-            case FileSyncStatus::FileChanged: return "Updated";
-            case FileSyncStatus::FileRemoved: return "Removed";
-            default:                          return "Unknown";
+            switch(section) {
+            case 0: return QStringLiteral("Name");
+            case 1: return QStringLiteral("Size");
+            case 2: return QStringLiteral("Changed");
+            case 3: return QStringLiteral("");
+            case 4: return QStringLiteral("Old Size");
+            case 5: return QStringLiteral("Old Changed");
             }
-        };
+        }
+    }
+    return QVariant();
+}
+
+QVariant FileDiffModel::data(QModelIndex const& index, int role) const
+{
+    if((!index.isValid()) || (index.row() >= m_file_index.size())) {
+        return QVariant();
+    }
+
+    if(role == Qt::DisplayRole) {
+        auto const row = index.row();
+        auto const column = index.column();
         auto const time_format_str = QLocale::system().dateTimeFormat(QLocale::ShortFormat);
         auto date_to_string = [time_format_str](std::chrono::system_clock::time_point const& timep) -> QString {
             auto const timep_t = std::chrono::system_clock::to_time_t(timep);
             return QString(QDateTime::fromTime_t(timep_t, Qt::UTC).toLocalTime().toString(time_format_str));
         };
-        setItem(i, 1, set_item_props(new QStandardItem(std::to_string(file_index[i].size).c_str())));
-        setItem(i, 2, set_item_props(new QStandardItem(date_to_string(file_index[i].modified_time))));
-        setItem(i, 3, set_item_props(new QStandardItem(sync_to_string(file_index_diff.index_files[i].sync_status))));
-        setItem(i, 4, set_item_props(new QStandardItem(std::to_string(file_index_diff.index_files[i].reference_size).c_str())));
-        setItem(i, 5, set_item_props(new QStandardItem(date_to_string(file_index_diff.index_files[i].reference_modified_time))));
+        auto const sync_state = m_file_index_diff.index_files[row].sync_status;
+        if(column == 0) {
+            return QString(m_file_index[row].path.generic_string().c_str());
+        } else if(column == 1) {
+            return QString::number(m_file_index[row].size);
+        } else if(column == 2) {
+            return date_to_string(m_file_index[row].modified_time);
+        } else if(column == 3) {
+            switch(sync_state) {
+            case FileSyncStatus::Unchanged:   return QStringLiteral("Unchanged");
+            case FileSyncStatus::NewFile:     return QStringLiteral("New");
+            case FileSyncStatus::FileChanged: return QStringLiteral("Updated");
+            case FileSyncStatus::FileRemoved: return QStringLiteral("Removed");
+            default:                          return QStringLiteral("Unknown");
+            }
+        } else if(column == 4) {
+            if(sync_state == FileSyncStatus::NewFile) {
+                return QStringLiteral("---");
+            } else {
+                return QString::number(m_file_index_diff.index_files[row].reference_size);
+            }
+        } else if(column == 5) {
+            if(sync_state == FileSyncStatus::NewFile) {
+                return QStringLiteral("---");
+            } else {
+                return date_to_string(m_file_index_diff.index_files[row].reference_modified_time);
+            }
+        }
+        GHULBUS_UNREACHABLE();
+    } else if(role == Qt::CheckStateRole) {
+        if(index.column() == 0) {
+            return Qt::Checked;
+        }
     }
+
+    return QVariant();
 }

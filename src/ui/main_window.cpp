@@ -165,6 +165,7 @@ struct MainWindow::Pimpl
             diffview->setModel(diffmodel);
             diffview->setSelectionMode(QAbstractItemView::SelectionMode::ExtendedSelection);
             diffview->setSelectionBehavior(QAbstractItemView::SelectionBehavior::SelectRows);
+            diffview->setUniformRowHeights(true); // impact on perf?
             layout->addWidget(diffview);
         }
     } fileDiffPage;
