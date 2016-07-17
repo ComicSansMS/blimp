@@ -51,28 +51,29 @@ struct MainWindow::Pimpl
              listRecentFiles(new QListWidget(widget)),
              buttonOpenRecent(new QPushButton(widget))
         {
-            labelHeader->setText("<div style=\"font-size:xx-large;font-weight:bold\">Welcome to Blimp CB</div>");
+            labelHeader->setText(
+                "<div style=\"font-size:xx-large;font-weight:bold\">" + tr("Welcome to Blimp CB") + "</div>");
             labelHeader->setAlignment(Qt::AlignCenter);
             layout->addWidget(labelHeader);
 
             layout->addStretch(2);
 
-            buttonNew->setText("Create New Blimp Backup File");
+            buttonNew->setText(tr("Create New Blimp Backup File"));
             buttonNew->setMinimumHeight(50);
             layout->addWidget(buttonNew);
 
-            buttonOpen->setText("Open Existing Blimp Backup File");
+            buttonOpen->setText(tr("Open Existing Blimp Backup File"));
             buttonOpen->setMinimumHeight(50);
             layout->addWidget(buttonOpen);
 
             layout->addStretch(1);
 
-            labelRecentFiles->setText("Recently Used Backup Files:");
+            labelRecentFiles->setText(tr("Recently Used Backup Files:"));
             layout->addWidget(labelRecentFiles);
             listRecentFiles->setEnabled(false);
 
             layout->addWidget(listRecentFiles);
-            buttonOpenRecent->setText("Open Selected");
+            buttonOpenRecent->setText(tr("Open Selected"));
             buttonOpenRecent->setEnabled(false);
             layout->addWidget(buttonOpenRecent);
 
@@ -102,7 +103,7 @@ struct MainWindow::Pimpl
             fstreeview->hideColumn(1);
             layout->addWidget(fstreeview);
 
-            buttonScanSelected->setText("Scan Selected");
+            buttonScanSelected->setText(tr("Scan Selected"));
             layout->addWidget(buttonScanSelected);
         }
     } scanSelectPage;
@@ -243,8 +244,8 @@ MainWindow::~MainWindow()
 
 void MainWindow::onNewDatabase()
 {
-    auto const qt_target_file = QFileDialog::getSaveFileName(this, "Save File Database", QString(),
-                                                             "Blimp Database File (*.blimpdb)");
+    auto const qt_target_file = QFileDialog::getSaveFileName(this, tr("Save File Database"), QString(),
+                                                             tr("Blimp Database File") + " (*.blimpdb)");
     if(qt_target_file.isEmpty()) {
         return;
     }
@@ -256,10 +257,10 @@ void MainWindow::onNewDatabase()
         }
     } catch(boost::filesystem::filesystem_error& e) {
         QMessageBox msgBox;
-        msgBox.setText(QString("Error while accessing file ") + qt_target_file + ".");
+        msgBox.setText(tr("Error while accessing file ") + qt_target_file + ".");
         msgBox.setStandardButtons(QMessageBox::Ok);
-        msgBox.setInformativeText(QString("Ensure that the file is not in use by another application."));
-        msgBox.setDetailedText(QString("The reported error was:\n") + e.what() + ".");
+        msgBox.setInformativeText(tr("Ensure that the file is not in use by another application."));
+        msgBox.setDetailedText(tr("The reported error was:\n%1").arg(e.what()));
         msgBox.setIcon(QMessageBox::Critical);
         msgBox.exec();
         return;
@@ -268,10 +269,10 @@ void MainWindow::onNewDatabase()
         m_pimpl->blimpdb = std::make_unique<BlimpDB>(target_file, BlimpDB::OpenMode::CreateNew);
     } catch(std::exception& e) {
         QMessageBox msgBox;
-        msgBox.setText(QString("Error trying to create new database file ") + qt_target_file + ".");
+        msgBox.setText(tr("Error trying to create new database file ") + qt_target_file + ".");
         msgBox.setStandardButtons(QMessageBox::Ok);
-        msgBox.setInformativeText(QString("Ensure that the file is not in use by another application."));
-        msgBox.setDetailedText(QString("The reported error was:\n") + e.what() + ".");
+        msgBox.setInformativeText(tr("Ensure that the file is not in use by another application."));
+        msgBox.setDetailedText(tr("The reported error was:\n%1").arg(e.what()));
         msgBox.setIcon(QMessageBox::Critical);
         msgBox.exec();
         return;
@@ -284,8 +285,8 @@ void MainWindow::onNewDatabase()
 
 void MainWindow::onOpenDatabase()
 {
-    auto const qt_target_file = QFileDialog::getOpenFileName(this, "Open File Database", QString(),
-                                                             "Blimp Database File (*.blimpdb)");
+    auto const qt_target_file = QFileDialog::getOpenFileName(this, tr("Open File Database"), QString(),
+                                                             tr("Blimp Database File") + " (*.blimpdb)");
     if(qt_target_file.isEmpty()) {
         return;
     }
@@ -295,10 +296,10 @@ void MainWindow::onOpenDatabase()
         m_pimpl->blimpdb = std::make_unique<BlimpDB>(target_file, BlimpDB::OpenMode::OpenExisting);
     } catch(std::exception& e) {
         QMessageBox msgBox;
-        msgBox.setText(QString("Error while accessing file ") + qt_target_file + ".");
+        msgBox.setText(tr("Error while accessing file ") + qt_target_file + ".");
         msgBox.setStandardButtons(QMessageBox::Ok);
-        msgBox.setInformativeText(QString("Ensure that the file is a valid database file."));
-        msgBox.setDetailedText(QString("The reported error was:\n") + e.what() + ".");
+        msgBox.setInformativeText(tr("Ensure that the file is a valid database file."));
+        msgBox.setDetailedText(tr("The reported error was:\n%1").arg(e.what()));
         msgBox.setIcon(QMessageBox::Critical);
         msgBox.exec();
         return;
@@ -319,10 +320,10 @@ void MainWindow::onStartFileScan()
         m_pimpl->blimpdb->setUserSelection(checked_files);
     } catch(std::exception& e) {
         QMessageBox msgBox;
-        msgBox.setText(QString("Error while accessing database."));
+        msgBox.setText(tr("Error while accessing database."));
         msgBox.setStandardButtons(QMessageBox::Ok);
-        msgBox.setInformativeText(QString("The database file could be corrupt."));
-        msgBox.setDetailedText(QString("The reported error was:\n") + e.what() + ".");
+        msgBox.setInformativeText(tr("The database file could be corrupt."));
+        msgBox.setDetailedText(tr("The reported error was:\n%1").arg(e.what()));
         msgBox.setIcon(QMessageBox::Critical);
         msgBox.exec();
         m_pimpl->scanSelectPage.widget->setEnabled(true);
@@ -333,13 +334,14 @@ void MainWindow::onStartFileScan()
     m_pimpl->progressPage.labelProgress2high->hide();
     m_pimpl->progressPage.labelProgress2low->hide();
 
-    m_pimpl->progressPage.labelHeader->setText("<div style=\"font-size:xx-large;font-weight:bold\">Scanning Files</div>");
-    m_pimpl->progressPage.labelProgress1high->setText("Indexing...");
-    m_pimpl->progressPage.labelProgress1low->setText("");
+    m_pimpl->progressPage.labelHeader->setText(
+        "<div style=\"font-size:xx-large;font-weight:bold\">" + tr("Scanning Files") + "</div>");
+    m_pimpl->progressPage.labelProgress1high->setText(tr("Indexing..."));
+    m_pimpl->progressPage.labelProgress1low->setText(tr(""));
     m_pimpl->progressPage.progress1->setMinimum(0);
     m_pimpl->progressPage.progress1->setMaximum(0);
     m_pimpl->progressPage.progress1->setValue(0);
-    m_pimpl->progressPage.buttonCancel->setText("Cancel Scanning");
+    m_pimpl->progressPage.buttonCancel->setText(tr("Cancel Scanning"));
     disconnect(m_pimpl->progressPage.buttonCancel, &QPushButton::clicked, nullptr, nullptr);
     connect(m_pimpl->progressPage.buttonCancel, &QPushButton::clicked,
             this, &MainWindow::onCancelFileScan);
@@ -356,22 +358,21 @@ void MainWindow::onCancelFileScan()
     m_pimpl->progressPage.buttonCancel->setEnabled(false);
     m_pimpl->fileScanner.cancelScanning();
     m_pimpl->progressPage.buttonCancel->setEnabled(true);
-    statusBar()->showMessage("Scanning canceled.", 5000);
+    statusBar()->showMessage(tr("Scanning canceled."), 5000);
 }
 
 void MainWindow::onFileScanIndexingUpdate(std::uintmax_t n_files)
 {
-    m_pimpl->progressPage.labelProgress1low->setText(
-        QStringLiteral("Indexing ") % QString::number(n_files) % QStringLiteral("..."));
+    m_pimpl->progressPage.labelProgress1low->setText(tr("Indexing %1...").arg(n_files));
 }
 
 void MainWindow::onFileScanIndexingCompleted(std::uintmax_t n_files)
 {
     m_pimpl->numberOfFilesInIndex = n_files;
-    statusBar()->showMessage(QStringLiteral("Indexing complete. Found ") % QString::number(n_files) %
-        QStringLiteral(" file") % (n_files == 1 ? QStringLiteral("") : QStringLiteral("s")) % QStringLiteral("."));
-    m_pimpl->progressPage.labelProgress1low->setText("");
-    m_pimpl->progressPage.labelProgress1high->setText("Comparing scan to database index...");
+    statusBar()->showMessage(tr("Indexing complete. Found %1 file%2.")
+        .arg(QString::number(n_files), ((n_files == 1) ? "" : "s")));
+    m_pimpl->progressPage.labelProgress1low->setText(tr(""));
+    m_pimpl->progressPage.labelProgress1high->setText(tr("Comparing scan to database index..."));
 }
 
 void MainWindow::onFileScanDiffCompleted()
@@ -385,8 +386,8 @@ void MainWindow::onFileScanDiffCompleted()
 
 void MainWindow::onFileScanChecksumUpdate(std::uintmax_t n_files)
 {
-    m_pimpl->statusBar.progressLabel->setText(QString::fromStdString("Scanning " + std::to_string(n_files) + "/" +
-                                                                     std::to_string(m_pimpl->numberOfFilesInIndex)));
+    m_pimpl->statusBar.progressLabel->setText(tr("Scanning %1/%2")
+        .arg(QString::number(n_files), QString::number(m_pimpl->numberOfFilesInIndex)));
     m_pimpl->statusBar.progressBar->setValue(n_files);
 }
 

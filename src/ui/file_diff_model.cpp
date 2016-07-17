@@ -62,12 +62,12 @@ QVariant FileDiffModel::headerData(int section, Qt::Orientation orientation, int
         if(role == Qt::DisplayRole)
         {
             switch(section) {
-            case 0: return QStringLiteral("Name");
-            case 1: return QStringLiteral("Size");
-            case 2: return QStringLiteral("Changed");
-            case 3: return QStringLiteral("");
-            case 4: return QStringLiteral("Old Size");
-            case 5: return QStringLiteral("Old Changed");
+            case 0: return QLatin1String("Name");
+            case 1: return QLatin1String("Size");
+            case 2: return QLatin1String("Changed");
+            case 3: return QLatin1String("");
+            case 4: return QLatin1String("Old Size");
+            case 5: return QLatin1String("Old Changed");
             }
         }
     }
@@ -114,21 +114,21 @@ QVariant FileDiffModel::data(QModelIndex const& index, int role) const
             return date_to_string(m_file_index[row].modified_time);
         } else if(column == 3) {
             switch(sync_state) {
-            case FileSyncStatus::Unchanged:   return QStringLiteral("Unchanged");
-            case FileSyncStatus::NewFile:     return QStringLiteral("New");
-            case FileSyncStatus::FileChanged: return QStringLiteral("Updated");
-            case FileSyncStatus::FileRemoved: return QStringLiteral("Removed");
-            default:                          return QStringLiteral("Unknown");
+            case FileSyncStatus::Unchanged:   return QLatin1String("Unchanged");
+            case FileSyncStatus::NewFile:     return QLatin1String("New");
+            case FileSyncStatus::FileChanged: return QLatin1String("Updated");
+            case FileSyncStatus::FileRemoved: return QLatin1String("Removed");
+            default:                          return QLatin1String("Unknown");
             }
         } else if(column == 4) {
             if(sync_state == FileSyncStatus::NewFile) {
-                return QStringLiteral("---");
+                return QLatin1String("---");
             } else {
                 return filesize_to_string(m_file_index_diff.index_files[row].reference_size);
             }
         } else if(column == 5) {
             if(sync_state == FileSyncStatus::NewFile) {
-                return QStringLiteral("---");
+                return QLatin1String("---");
             } else {
                 return date_to_string(m_file_index_diff.index_files[row].reference_modified_time);
             }
