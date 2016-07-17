@@ -18,6 +18,8 @@ void FileDiffModel::setFileIndexData(std::vector<FileInfo> const& file_index, Fi
     beginResetModel();
     m_file_index = file_index;
     m_file_index_diff = file_index_diff;
+    m_entry_checked.clear();
+    m_entry_checked.resize(file_index.size(), true);
     endResetModel();
 }
 
@@ -117,9 +119,20 @@ QVariant FileDiffModel::data(QModelIndex const& index, int role) const
         GHULBUS_UNREACHABLE();
     } else if(role == Qt::CheckStateRole) {
         if(index.column() == 0) {
-            return Qt::Checked;
+            return m_entry_checked[index.row()] ? Qt::Checked : Qt::Unchecked;
         }
     }
 
     return QVariant();
+}
+
+bool FileDiffModel::setData(QModelIndex const& index, QVariant const& value, int role)
+{
+    if(role == Qt::CheckStateRole)
+    {
+        m_entry_checked[index.row()] = (value.toInt() == Qt::Checked);
+        emit dataChanged(index, index);
+        return true;
+    }
+    return false;
 }

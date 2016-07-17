@@ -24,12 +24,14 @@ public:
     int columnCount(QModelIndex const& index) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
     QVariant data(QModelIndex const& index, int role) const override;
+    bool setData(QModelIndex const& index, QVariant const& value, int role) override;
 
 private:
 
 private:
     std::vector<FileInfo> m_file_index;
     FileIndexDiff m_file_index_diff;
+    std::vector<bool> m_entry_checked;
 };
 
 #endif
