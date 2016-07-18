@@ -100,9 +100,9 @@ QVariant FileDiffModel::data(QModelIndex const& index, int role) const
             } else if (bytes >= mb) {
                 return tr("%1 MB").arg(QLocale().toString(static_cast<double>(bytes) / mb, 'f', 1));
             } else if (bytes >= kb) {
-                return tr("%1 KB").arg(QLocale().toString(bytes / kb));
+                return tr("%1 KB").arg(QLocale().toString(static_cast<int>(bytes / kb)));
             } else {
-                return tr("%1 bytes").arg(QLocale().toString(bytes));
+                return tr("%1 bytes").arg(QLocale().toString(static_cast<int>(bytes)));
             }
         };
         auto const sync_state = m_file_index_diff.index_files[row].sync_status;
