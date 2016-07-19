@@ -11,11 +11,20 @@
 
 class FileDiffModel : public QAbstractItemModel {
     Q_OBJECT
+
+private:
+    std::vector<FileInfo> m_file_index;
+    FileIndexDiff m_file_index_diff;
+    std::vector<bool> m_entry_checked;
 public:
     FileDiffModel(QObject* parent);
 
     void setFileIndexData(std::vector<FileInfo> const& file_index, FileIndexDiff const& file_index_diff);
+    std::vector<FileInfo> getCheckedFiles() const;
 
+    /** @name Implementation of QAbstractItemModel
+     * @{
+     */
     Qt::ItemFlags flags(QModelIndex const& index) const override;
     bool hasChildren(QModelIndex const& index) const override;
     QModelIndex index(int row, int column, QModelIndex const& parent) const override;
@@ -25,13 +34,8 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
     QVariant data(QModelIndex const& index, int role) const override;
     bool setData(QModelIndex const& index, QVariant const& value, int role) override;
+    //! @}
 
-private:
-
-private:
-    std::vector<FileInfo> m_file_index;
-    FileIndexDiff m_file_index_diff;
-    std::vector<bool> m_entry_checked;
 };
 
 #endif

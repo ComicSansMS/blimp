@@ -5,6 +5,7 @@
 #include <QDateTime>
 #include <QLocale>
 
+#include <algorithm>
 #include <chrono>
 
 FileDiffModel::FileDiffModel(QObject* parent)
@@ -21,6 +22,18 @@ void FileDiffModel::setFileIndexData(std::vector<FileInfo> const& file_index, Fi
     m_entry_checked.clear();
     m_entry_checked.resize(file_index.size(), true);
     endResetModel();
+}
+
+std::vector<FileInfo> FileDiffModel::getCheckedFiles() const
+{
+    std::vector<FileInfo> ret;
+    ret.reserve(std::count(begin(m_entry_checked), end(m_entry_checked), true));
+    for(std::size_t i = 0; i < m_file_index.size(); ++i) {
+        if(m_entry_checked[i]) {
+            ret.push_back(m_file_index[i]);
+        }
+    }
+    return ret;
 }
 
 Qt::ItemFlags FileDiffModel::flags(QModelIndex const& index) const

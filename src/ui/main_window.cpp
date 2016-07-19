@@ -27,6 +27,8 @@
 
 #include <boost/filesystem.hpp>
 
+#include <numeric>
+
 struct MainWindow::Pimpl
 {
     QStackedWidget* central;
@@ -156,18 +158,29 @@ struct MainWindow::Pimpl
         QBoxLayout* layout;
         QTreeView* diffview;
         FileDiffModel* diffmodel;
+        QBoxLayout* inner_layout;
+        QPushButton* buttonOk;
+        QLabel* labelSize;
 
         FileDiffPage(MainWindow* parent)
             :widget(new QWidget(parent)),
-             layout(new QBoxLayout(QBoxLayout::Direction::TopToBottom, widget)),
+             layout(new QBoxLayout(QBoxLayout::Direction::LeftToRight, widget)),
              diffview(new QTreeView(widget)),
-             diffmodel(new FileDiffModel(widget))
+             diffmodel(new FileDiffModel(widget)),
+             inner_layout(new QBoxLayout(QBoxLayout::Direction::TopToBottom, widget)),
+             buttonOk(new QPushButton(widget)),
+             labelSize(new QLabel(widget))
         {
             diffview->setModel(diffmodel);
             diffview->setSelectionMode(QAbstractItemView::SelectionMode::ExtendedSelection);
             diffview->setSelectionBehavior(QAbstractItemView::SelectionBehavior::SelectRows);
             diffview->setUniformRowHeights(true); // impact on perf?
             layout->addWidget(diffview);
+            layout->addLayout(inner_layout);
+            buttonOk->setText(tr("OK"));
+            inner_layout->addWidget(buttonOk);
+            inner_layout->addStretch(1);
+            inner_layout->addWidget(labelSize);
         }
     } fileDiffPage;
 
@@ -219,6 +232,8 @@ MainWindow::MainWindow()
     m_pimpl->central->addWidget(m_pimpl->progressPage.widget);
 
     // file diff page
+    connect(m_pimpl->fileDiffPage.buttonOk, &QPushButton::clicked,
+            this, &MainWindow::onFileDiffApprove);
     m_pimpl->central->addWidget(m_pimpl->fileDiffPage.widget);
 
     m_pimpl->central->setCurrentWidget(m_pimpl->welcomePage.widget);
@@ -378,10 +393,23 @@ void MainWindow::onFileScanIndexingCompleted(std::uintmax_t n_files)
 void MainWindow::onFileScanDiffCompleted()
 {
     m_pimpl->fileScanner.joinScanning();
+    auto const& index = m_pimpl->fileScanner.getIndexList();
+    std::uintmax_t const total_size =
+        std::accumulate(begin(index), end(index), 0, [](std::uintmax_t acc, FileInfo const& finfo) -> std::uintmax_t
+            {
+                return finfo.size + acc;
+            });
+    m_pimpl->fileDiffPage.labelSize->setText(tr("Total size: %1 bytes").arg(total_size));
     m_pimpl->fileDiffPage.diffmodel->setFileIndexData(m_pimpl->fileScanner.getIndexList(),
                                                       m_pimpl->fileScanner.getIndexDiff());
     m_pimpl->central->setCurrentWidget(m_pimpl->fileDiffPage.widget);
 
+}
+
+void MainWindow::onFileDiffApprove()
+{
+    auto const checked_files = m_pimpl->fileDiffPage.diffmodel->getCheckedFiles();
+    checked_files.size();
 }
 
 void MainWindow::onFileScanChecksumUpdate(std::uintmax_t n_files)

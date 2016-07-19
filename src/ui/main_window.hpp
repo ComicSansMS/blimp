@@ -30,6 +30,7 @@ public slots:
     void onFileScanDiffCompleted();
     void onFileScanChecksumUpdate(std::uintmax_t n_files);
     void onFileScanChecksumCompleted();
+    void onFileDiffApprove();
 
 
 };
