@@ -101,6 +101,9 @@ target_include_directories(blimp PUBLIC external/sqlpp11-connector-sqlite3/inclu
 target_compile_definitions(blimp PUBLIC $<$<STREQUAL:$<CXX_COMPILER_ID>,MSVC>:_CRT_SECURE_NO_WARNINGS>)
 target_compile_options(blimp PUBLIC $<$<AND:$<STREQUAL:$<CXX_COMPILER_ID>,MSVC>,$<NOT:$<CONFIG:Debug>>>:/Zo>)
 
+add_executable(aws_tester src/aws_prototype.cpp)
+target_link_libraries(aws_tester PUBLIC aws-cpp-sdk-glacier)
+
 if(WIN32)
     getQt5Dlls(Qt5::Widgets qt_DLLS)
     file(COPY ${qt_DLLS} ${QT5_ADDITIONAL_DLLS} DESTINATION ${PROJECT_BINARY_DIR})
