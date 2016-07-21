@@ -102,7 +102,7 @@ target_compile_definitions(blimp PUBLIC $<$<STREQUAL:$<CXX_COMPILER_ID>,MSVC>:_C
 target_compile_options(blimp PUBLIC $<$<AND:$<STREQUAL:$<CXX_COMPILER_ID>,MSVC>,$<NOT:$<CONFIG:Debug>>>:/Zo>)
 
 add_executable(aws_tester src/aws_prototype.cpp)
-target_link_libraries(aws_tester PUBLIC aws-cpp-sdk-glacier)
+target_link_libraries(aws_tester PUBLIC aws-cpp-sdk-glacier cryptopp-static)
 
 if(WIN32)
     getQt5Dlls(Qt5::Widgets qt_DLLS)
