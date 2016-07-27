@@ -6,6 +6,7 @@
 #include <aws/glacier/GlacierClient.h>
 
 #include <aws/glacier/model/DescribeVaultRequest.h>
+#include <aws/glacier/model/ListJobsRequest.h>
 #include <aws/glacier/model/UploadArchiveRequest.h>
 #include <aws/glacier/model/UploadArchiveResult.h>
 
@@ -52,10 +53,6 @@ std::string calculateTreeHash(unsigned char const* data, std::size_t data_size)
             dec.Put(reinterpret_cast<unsigned char const*>(hashes[i*2 + 1].data()), hashes[i*2 + 1].size());
             dec.Get(double_digest.data() + 32, 32);
             new_hashes.push_back(calculateHash(double_digest.data(), double_digest.size()));
-            /*
-            std::string concat = hashes[i*2] + hashes[i*2 + 1];
-            new_hashes.push_back(calculateHash(reinterpret_cast<unsigned char const*>(concat.data()), concat.size()));
-            */
         }
         hashes.swap(new_hashes);
     }
@@ -76,7 +73,7 @@ int main()
     Aws::Glacier::GlacierClient client(client_cfg);
     Aws::Glacier::Model::DescribeVaultRequest request;
     request.WithVaultName("TestVault").WithAccountId("-");
-    //*
+    /*
     Aws::Glacier::Model::DescribeVaultOutcome outcome = client.DescribeVault(request);
     if(!outcome.IsSuccess()) {
         std::cout << ":(" << std::endl;
@@ -92,6 +89,32 @@ int main()
                   << std::endl;
 
     }
+    //*/
+
+    Aws::Glacier::Model::ListJobsRequest list_jobs_request;
+    list_jobs_request.WithVaultName("TestVault").WithAccountId("-");
+    /*
+    Aws::Glacier::Model::ListJobsOutcome list_jobs_outcome = client.ListJobs(list_jobs_request);
+    if(!list_jobs_outcome.IsSuccess())
+    {
+        std::cout << ":(" << std::endl;
+        std::cout << list_jobs_outcome.GetError().GetMessage() << std::endl;
+    } else {
+        std::cout << ":)" << std::endl;
+        auto const& res = list_jobs_outcome.GetResult();
+        std::cout << res.GetJobList().size() << " jobs listed." << std::endl;
+        for(auto const& j : res.GetJobList()) {
+            std::cout << " - ";
+            if(j.GetAction() == Aws::Glacier::Model::ActionCode::ArchiveRetrieval) {
+                std::cout << "Archive retrieval: " << std::endl;
+            } else if(j.GetAction() == Aws::Glacier::Model::ActionCode::InventoryRetrieval) {
+                std::cout << "Inventory retrieval: " << std::endl;
+            } else {
+                std::cout << "Unknown Action." << std::endl;
+            }
+        }
+    }
+
     //*/
 
 
@@ -118,7 +141,7 @@ int main()
     sstr->write(filedata.data(), filedata.size());
     upload_request.SetBody(sstr);
 
-    //*
+    /*
     auto upload_outcome = client.UploadArchive(upload_request);
     if(!upload_outcome.IsSuccess()) {
         std::cout << ":(" << std::endl;
