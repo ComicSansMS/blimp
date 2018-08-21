@@ -1,4 +1,7 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.8)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.12)
+    cmake_policy(SET CMP0074 NEW)
+endif()
 
 project(blimp)
 set(CMAKE_CXX_STANDARD 14)
@@ -10,18 +13,9 @@ find_package(Qt5BaseDir)
 if(QT5_BASE_DIR)
     list(APPEND CMAKE_PREFIX_PATH ${QT5_BASE_DIR})
 endif()
-find_package(Qt5Widgets 5.7 REQUIRED)
+find_package(Qt5Widgets REQUIRED)
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost REQUIRED filesystem)
-# TODO workaround for bug in CMake's FindBoost module
-get_target_property(boost_fs_release Boost::filesystem IMPORTED_LOCATION_RELEASE)
-set_property(TARGET Boost::filesystem PROPERTY IMPORTED_LOCATION_RELWITHDEBINFO ${boost_fs_release})
-set_property(TARGET Boost::filesystem PROPERTY IMPORTED_LOCATION_MINSIZEREL ${boost_fs_release})
-unset(boost_fs_release)
-get_target_property(boost_sys_release Boost::system IMPORTED_LOCATION_RELEASE)
-set_property(TARGET Boost::system PROPERTY IMPORTED_LOCATION_RELWITHDEBINFO ${boost_sys_release})
-set_property(TARGET Boost::system PROPERTY IMPORTED_LOCATION_MINSIZEREL ${boost_sys_release})
-unset(boost_sys_release)
 
 set(BLIMP_SOURCE_DIRECTORY ${PROJECT_SOURCE_DIR}/src)
 set(BLIMP_INCLUDE_DIRECTORY ${PROJECT_SOURCE_DIR}/src)
@@ -30,6 +24,7 @@ set(BLIMP_SOURCE_FILES
     ${BLIMP_SOURCE_DIRECTORY}/main.cpp
     ${BLIMP_SOURCE_DIRECTORY}/file_bundling.cpp
     ${BLIMP_SOURCE_DIRECTORY}/file_hash.cpp
+    ${BLIMP_SOURCE_DIRECTORY}/file_processor.cpp
     ${BLIMP_SOURCE_DIRECTORY}/db/blimpdb.cpp
 )
 
@@ -38,6 +33,10 @@ set(BLIMP_HEADER_FILES
     ${BLIMP_SOURCE_DIRECTORY}/file_bundling.hpp
     ${BLIMP_SOURCE_DIRECTORY}/file_hash.hpp
     ${BLIMP_SOURCE_DIRECTORY}/file_info.hpp
+    ${BLIMP_SOURCE_DIRECTORY}/file_processor.hpp
+    ${BLIMP_SOURCE_DIRECTORY}/storage.hpp
+    ${BLIMP_SOURCE_DIRECTORY}/storage_aws_glacier.hpp
+    ${BLIMP_SOURCE_DIRECTORY}/storage_filesystem.hpp
     ${BLIMP_SOURCE_DIRECTORY}/version.hpp
     ${BLIMP_SOURCE_DIRECTORY}/db/blimpdb.hpp
 )
@@ -109,7 +108,7 @@ target_link_libraries(aws_tester PUBLIC aws-cpp-sdk-glacier cryptopp-static)
 if(WIN32)
     getQt5Dlls(Qt5::Widgets qt_DLLS)
     file(COPY ${qt_DLLS} ${QT5_ADDITIONAL_DLLS} DESTINATION ${PROJECT_BINARY_DIR})
-    
+
     find_package(VLD QUIET)
     if(VLD_FOUND)
         message(STATUS "Found Visual Leak Detector.")
