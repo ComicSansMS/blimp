@@ -13,7 +13,7 @@
 #include <gbBase/Assert.hpp>
 #include <gbBase/Log.hpp>
 
-#include <gsl.h>
+#include <gsl/gsl>
 
 #include <sqlpp11/sqlpp11.h>
 #include <sqlpp11/sqlite3/sqlite3.h>

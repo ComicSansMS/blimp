@@ -1,7 +1,5 @@
-cmake_minimum_required(VERSION 3.8)
-if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.12)
-    cmake_policy(SET CMP0074 NEW)
-endif()
+cmake_minimum_required(VERSION 3.12)
+cmake_policy(SET CMP0074 NEW)
 
 project(blimp)
 set(CMAKE_CXX_STANDARD 14)
@@ -86,6 +84,7 @@ add_executable(blimp
 
 target_include_directories(blimp PUBLIC ${BLIMP_INCLUDE_DIRECTORY})
 target_link_libraries(blimp PUBLIC
+    aws-cpp-sdk-core
     aws-cpp-sdk-glacier
     Boost::disable_autolinking
     Boost::filesystem
@@ -102,8 +101,10 @@ target_include_directories(blimp PUBLIC external/sqlpp11-connector-sqlite3/inclu
 target_compile_definitions(blimp PUBLIC $<$<STREQUAL:$<CXX_COMPILER_ID>,MSVC>:_CRT_SECURE_NO_WARNINGS>)
 target_compile_options(blimp PUBLIC $<$<AND:$<STREQUAL:$<CXX_COMPILER_ID>,MSVC>,$<NOT:$<CONFIG:Debug>>>:/Zo>)
 
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT blimp)
+
 add_executable(aws_tester src/aws_prototype.cpp)
-target_link_libraries(aws_tester PUBLIC aws-cpp-sdk-glacier cryptopp-static)
+target_link_libraries(aws_tester PUBLIC aws-cpp-sdk-core aws-cpp-sdk-glacier cryptopp-static)
 
 if(WIN32)
     getQt5Dlls(Qt5::Widgets qt_DLLS)

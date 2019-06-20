@@ -10,7 +10,7 @@
 #include <gbBase/Log.hpp>
 #include <gbBase/LogHandlers.hpp>
 
-#include <gsl.h>
+#include <gsl/gsl>
 
 #include <rijndael.h>
 #include <aes.h>

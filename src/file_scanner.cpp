@@ -5,7 +5,7 @@
 #include <gbBase/Assert.hpp>
 #include <gbBase/Log.hpp>
 
-#include <gsl.h>
+#include <gsl/gsl>
 
 #include <sha.h>
 
