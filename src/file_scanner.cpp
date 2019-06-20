@@ -3,9 +3,8 @@
 #include <exceptions.hpp>
 
 #include <gbBase/Assert.hpp>
+#include <gbBase/Finally.hpp>
 #include <gbBase/Log.hpp>
-
-#include <gsl/gsl>
 
 #include <sha.h>
 
@@ -13,6 +12,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdio>
 
 FileScanner::FileScanner()
@@ -139,15 +139,15 @@ Hash FileScanner::calculateHash(FileInfo const& file_info)
     if(!fin) {
         GHULBUS_THROW(Ghulbus::Exceptions::IOError(), "Error opening file " + file_info.path.string() + ".");
     }
-    auto fin_guard = gsl::finally([&fin]() { int ret = std::fclose(fin); GHULBUS_ASSERT(ret == 0); });
+    auto fin_guard = Ghulbus::finally([&fin]() { int ret = std::fclose(fin); GHULBUS_ASSERT(ret == 0); });
     std::size_t const HASH_BUFFER_SIZE = 4096;
-    std::array<gsl::byte, HASH_BUFFER_SIZE> buffer;
+    std::array<char, HASH_BUFFER_SIZE> buffer;
     std::size_t bytes_left = file_info.size;
     CryptoPP::SHA256 hash_calc;
     hash_calc.Restart();
     while(bytes_left > 0) {
         std::size_t const bytes_to_read = std::min(bytes_left, buffer.size());
-        auto const bytes_read = std::fread(buffer.data(), sizeof(gsl::byte), bytes_to_read, fin);
+        auto const bytes_read = std::fread(buffer.data(), sizeof(char), bytes_to_read, fin);
         if(bytes_read != bytes_to_read) {
             GHULBUS_THROW(Ghulbus::Exceptions::IOError(), "Error while reading " + file_info.path.string() + ".");
         }

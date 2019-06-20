@@ -7,10 +7,9 @@
 
 #include <sqlite3.h>
 
+#include <gbBase/Finally.hpp>
 #include <gbBase/Log.hpp>
 #include <gbBase/LogHandlers.hpp>
-
-#include <gsl/gsl>
 
 #include <rijndael.h>
 #include <aes.h>
@@ -27,7 +26,7 @@
 int main(int argc, char* argv[])
 {
     Ghulbus::Log::initializeLogging();
-    auto gbbase_guard = gsl::finally([]() { Ghulbus::Log::shutdownLogging(); });
+    auto gbbase_guard = Ghulbus::finally([]() { Ghulbus::Log::shutdownLogging(); });
 #if BOOST_COMP_MSVC && !defined NDEBUG
     Ghulbus::Log::setLogHandler(Ghulbus::Log::Handlers::logToWindowsDebugger);
     Ghulbus::Log::setLogLevel(Ghulbus::LogLevel::Debug);
@@ -36,7 +35,7 @@ int main(int argc, char* argv[])
     Ghulbus::Log::setLogHandler(async_logger);
     Ghulbus::Log::setLogLevel(Ghulbus::LogLevel::Info);
     async_logger.start();
-    auto const logger_stop_guard = gsl::finally([&async_logger]() { async_logger.stop(); });
+    auto const logger_stop_guard = Ghulbus::finally([&async_logger]() { async_logger.stop(); });
 #endif
 
     CryptoPP::AESEncryption aes_encrypt;
@@ -47,10 +46,10 @@ int main(int argc, char* argv[])
 
     Aws::SDKOptions opt;
     Aws::InitAPI(opt);
-    auto aws_guard = gsl::finally([&opt]() { Aws::ShutdownAPI(opt); });
+    auto aws_guard = Ghulbus::finally([&opt]() { Aws::ShutdownAPI(opt); });
 
     sqlite3_initialize();
-    auto sqlite_guard = gsl::finally([]() { sqlite3_shutdown(); });
+    auto sqlite_guard = Ghulbus::finally([]() { sqlite3_shutdown(); });
 
     QApplication the_app(argc, argv);
 

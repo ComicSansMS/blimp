@@ -23,12 +23,6 @@ endif()
 set(GB_BUILD_TESTS OFF CACHE BOOL "")
 add_subdirectory(GhulbusBase)
 
-if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/GSL/CMakeLists.txt)
-    message(FATAL_ERROR "GSL build file not found; Did you remember to fetch the submodules? (git submodule update --init)")
-endif()
-add_library(GSL INTERFACE)
-target_include_directories(GSL INTERFACE ${CMAKE_CURRENT_LIST_DIR}/GSL/include)
-
 add_subdirectory(sqlite3)
 
 set(SQLITE3_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/sqlite3)

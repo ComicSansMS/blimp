@@ -4,9 +4,6 @@
 [submodule "external/aws-sdk-cpp"]
 	path = external/aws-sdk-cpp
 	url = https://github.com/aws/aws-sdk-cpp
-[submodule "external/GSL"]
-	path = external/GSL
-	url = https://github.com/Microsoft/GSL
 [submodule "external/GhulbusBase"]
 	path = external/GhulbusBase
 	url = https://github.com/ComicSansMS/GhulbusBase.git

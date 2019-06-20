@@ -4,6 +4,7 @@ cmake_policy(SET CMP0074 NEW)
 project(blimp)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/permissive->)
 
 add_subdirectory(external)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
@@ -90,7 +91,6 @@ target_link_libraries(blimp PUBLIC
     Boost::filesystem
     cryptopp-static
     gbBase
-    GSL
     sqlpp11-connector-sqlite3
     sqlite3
     Qt5::Widgets
