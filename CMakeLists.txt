@@ -19,6 +19,8 @@ if(MSVC)
     endif()
 endif()
 
+option(BLIMP_BUILD_TESTS "Determines whether to build tests for blimp" ON)
+
 add_subdirectory(external)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 find_package(Qt5BaseDir)
@@ -90,7 +92,6 @@ source_group(moc FILES
     ${BLIMP_QT_MOC_SOURCE_FILES}
 )
 
-
 add_executable(blimp
     ${BLIMP_SOURCE_FILES}
     ${BLIMP_HEADER_FILES}
@@ -127,4 +128,15 @@ target_link_libraries(aws_tester PUBLIC aws-cpp-sdk-core aws-cpp-sdk-glacier cry
 if(WIN32)
     getQt5Dlls(Qt5::Widgets qt_DLLS)
     file(COPY ${qt_DLLS} ${QT5_ADDITIONAL_DLLS} DESTINATION ${PROJECT_BINARY_DIR})
+endif()
+
+if(BLIMP_BUILD_TESTS)
+    enable_testing()
+
+    add_executable(test_blimp_ui
+        ${PROJECT_SOURCE_DIR}/test/ui/filesize_to_string.t.cpp
+    )
+    target_include_directories(test_blimp_ui PUBLIC ${BLIMP_INCLUDE_DIRECTORY})
+    target_link_libraries(test_blimp_ui PUBLIC Catch2 Qt5::Widgets)
+    add_test(NAME BlimpUI COMMAND test_blimp_ui)
 endif()

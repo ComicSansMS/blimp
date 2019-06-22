@@ -11,6 +11,10 @@ set(STATIC_LINKING "1")
 set(ENABLE_TESTING OFF CACHE BOOL "")
 add_subdirectory(aws-sdk-cpp)
 
+if(BLIMP_BUILD_TESTS)
+    add_subdirectory(catch2)
+endif()
+
 if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/cryptopp/CMakeLists.txt)
     message(FATAL_ERROR "Cryptopp build file not found; Did you remember to fetch the submodules? (git submodule update --init)")
 endif()

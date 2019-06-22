@@ -14,7 +14,7 @@ inline QString filesize_to_string(std::uintmax_t bytes)
     std::uintmax_t constexpr gb = 1024 * mb;
     std::uintmax_t constexpr tb = 1024 * gb;
     if (bytes >= tb) {
-        return QObject::tr("%1 TB").arg(QLocale().toString(static_cast<double>(bytes) / tb, 'f', 3));
+        return QObject::tr("%1 TB").arg(QLocale().toString(static_cast<double>(bytes) / tb, 'f', 2));
     } else if (bytes >= gb) {
         return QObject::tr("%1 GB").arg(QLocale().toString(static_cast<double>(bytes) / gb, 'f', 2));
     } else if (bytes >= mb) {
