@@ -74,6 +74,10 @@ set(BLIMP_QT_SOURCE_FILES
     ${BLIMP_SOURCE_DIRECTORY}/file_scanner.cpp
 )
 
+set(BLIMP_QT_HEADER_FILES
+    ${BLIMP_SOURCE_DIRECTORY}/ui/filesize_to_string.hpp
+)
+
 set(BLIMP_QT_MOC_HEADER_FILES
     ${BLIMP_INCLUDE_DIRECTORY}/ui/file_diff_model.hpp
     ${BLIMP_INCLUDE_DIRECTORY}/ui/filesystem_model.hpp
@@ -92,6 +96,7 @@ add_executable(blimp
     ${BLIMP_HEADER_FILES}
     ${BLIMP_TABLE_HEADER_FILES}
     ${BLIMP_QT_SOURCE_FILES}
+    ${BLIMP_QT_HEADER_FILES}
     ${BLIMP_QT_MOC_HEADER_FILES}
     ${BLIMP_QT_MOC_SOURCE_FILES}
 )

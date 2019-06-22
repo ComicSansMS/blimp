@@ -171,6 +171,7 @@ void FileScanner::cancelScanning()
 
 void FileScanner::joinScanning()
 {
+    // @todo: m_scanThread might no longer be joinable if canceled during index diff
     m_scanThread.join();
 }
 

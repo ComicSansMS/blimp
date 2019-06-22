@@ -2,6 +2,7 @@
 #include <ui/main_window.hpp>
 
 #include <ui/file_diff_model.hpp>
+#include <ui/filesize_to_string.hpp>
 #include <ui/filesystem_model.hpp>
 
 #include <db/blimpdb.hpp>
@@ -398,11 +399,11 @@ void MainWindow::onFileScanDiffCompleted()
     m_pimpl->fileScanner.joinScanning();
     auto const& index = m_pimpl->fileScanner.getIndexList();
     std::uintmax_t const total_size =
-        std::accumulate(begin(index), end(index), 0, [](std::uintmax_t acc, FileInfo const& finfo) -> std::uintmax_t
+        std::accumulate(begin(index), end(index), uintmax_t{ 0 }, [](std::uintmax_t acc, FileInfo const& finfo)
             {
                 return finfo.size + acc;
             });
-    m_pimpl->fileDiffPage.labelSize->setText(tr("Total size: %1 bytes").arg(total_size));
+    m_pimpl->fileDiffPage.labelSize->setText(tr("Total size: %1").arg(filesize_to_string(total_size)));
     m_pimpl->fileDiffPage.diffmodel->setFileIndexData(m_pimpl->fileScanner.getIndexList(),
                                                       m_pimpl->fileScanner.getIndexDiff());
     m_pimpl->central->setCurrentWidget(m_pimpl->fileDiffPage.widget);
