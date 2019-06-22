@@ -167,7 +167,7 @@ struct MainWindow::Pimpl
              layout(new QBoxLayout(QBoxLayout::Direction::LeftToRight, widget)),
              diffview(new QTreeView(widget)),
              diffmodel(new FileDiffModel(widget)),
-             inner_layout(new QBoxLayout(QBoxLayout::Direction::TopToBottom, widget)),
+             inner_layout(nullptr),
              buttonOk(new QPushButton(widget)),
              labelSize(new QLabel(widget))
         {
@@ -176,6 +176,7 @@ struct MainWindow::Pimpl
             diffview->setSelectionBehavior(QAbstractItemView::SelectionBehavior::SelectRows);
             diffview->setUniformRowHeights(true); // impact on perf?
             layout->addWidget(diffview);
+            inner_layout = new QBoxLayout(QBoxLayout::Direction::TopToBottom);
             layout->addLayout(inner_layout);
             buttonOk->setText(tr("OK"));
             inner_layout->addWidget(buttonOk);
@@ -187,6 +188,8 @@ struct MainWindow::Pimpl
     struct StatusBarWidgets {
         QLabel* progressLabel;
         QProgressBar* progressBar;
+
+        StatusBarWidgets() : progressLabel(nullptr), progressBar(nullptr) {}
     } statusBar;
 
     FileScanner fileScanner;
