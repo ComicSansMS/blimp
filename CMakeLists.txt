@@ -122,13 +122,4 @@ target_link_libraries(aws_tester PUBLIC aws-cpp-sdk-core aws-cpp-sdk-glacier cry
 if(WIN32)
     getQt5Dlls(Qt5::Widgets qt_DLLS)
     file(COPY ${qt_DLLS} ${QT5_ADDITIONAL_DLLS} DESTINATION ${PROJECT_BINARY_DIR})
-
-    find_package(VLD QUIET)
-    if(VLD_FOUND)
-        message(STATUS "Found Visual Leak Detector.")
-        target_compile_definitions(blimp PUBLIC BLIMP_HAS_VLD)
-        target_include_directories(blimp PUBLIC ${VLD_INCLUDE_DIR})
-        target_link_libraries(blimp PUBLIC $<$<CONFIG:Debug>:${VLD_LIBRARY}>)
-        file(COPY ${VLD_RUNTIME_FILES} DESTINATION ${PROJECT_BINARY_DIR})
-    endif()
 endif()

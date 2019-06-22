@@ -1,7 +1,3 @@
-#ifdef BLIMP_HAS_VLD
-#   include <vld.h>
-#endif
-
 #include <aws/core/Aws.h>
 #include <aws/glacier/GlacierClient.h>
 
@@ -23,8 +19,18 @@
 
 #include <boost/predef.h>
 
+#if BOOST_COMP_MSVC && !defined NDEBUG
+#   define _CRTDBG_MAP_ALLOC
+#   include <stdlib.h>
+#   include <crtdbg.h>
+#endif
+
 int main(int argc, char* argv[])
 {
+#if BOOST_COMP_MSVC && !defined NDEBUG
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+
     Ghulbus::Log::initializeLogging();
     auto gbbase_guard = Ghulbus::finally([]() { Ghulbus::Log::shutdownLogging(); });
 #if BOOST_COMP_MSVC && !defined NDEBUG
@@ -38,11 +44,11 @@ int main(int argc, char* argv[])
     auto const logger_stop_guard = Ghulbus::finally([&async_logger]() { async_logger.stop(); });
 #endif
 
-    CryptoPP::AESEncryption aes_encrypt;
-    byte key[] = { 'C', 'O', 'O', 'L', 'K', 'E', 'Y', '!' };
-    aes_encrypt.SetKey(key, sizeof(key));
-    byte b[CryptoPP::AESEncryption::BLOCKSIZE] = "BLA";
-    aes_encrypt.ProcessBlock(b);
+    //CryptoPP::AESEncryption aes_encrypt;
+    //byte key[] = { 'C', 'O', 'O', 'L', 'K', 'E', 'Y', '!' };
+    //aes_encrypt.SetKey(key, sizeof(key));
+    //byte b[CryptoPP::AESEncryption::BLOCKSIZE] = "BLA";
+    //aes_encrypt.ProcessBlock(b);
 
     Aws::SDKOptions opt;
     Aws::InitAPI(opt);
