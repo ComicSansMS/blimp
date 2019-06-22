@@ -56,10 +56,7 @@ BlimpDB::BlimpDB(std::string const& db_filename, OpenMode mode)
     }
 }
 
-BlimpDB::~BlimpDB()
-{
-    // needed for pimpl destruction
-}
+BlimpDB::~BlimpDB() = default;      // needed for pimpl destruction
 
 void createBlimpPropertiesTable(sqlpp::sqlite3::connection& db)
 {

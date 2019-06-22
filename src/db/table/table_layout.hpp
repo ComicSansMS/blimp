@@ -32,7 +32,7 @@ inline constexpr char const* user_selection()
 
 /** A list of physical locations on disk.
  * A list of all the files in the file index.
- * Each indexed filed may map to one or more file_element.
+ * Each indexed file may map to one or more file_element.
  */
 inline constexpr char const* indexed_locations()
 {
