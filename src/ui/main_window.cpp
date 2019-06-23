@@ -253,6 +253,12 @@ MainWindow::MainWindow()
             this, &MainWindow::onFileScanChecksumUpdate, Qt::QueuedConnection);
     connect(&m_pimpl->fileScanner, &FileScanner::checksumCalculationCompleted,
             this, &MainWindow::onFileScanChecksumCompleted, Qt::QueuedConnection);
+    connect(&m_pimpl->fileScanner, &FileScanner::processingUpdateNewFile,
+            this, &MainWindow::onProcessingUpdateNewFile, Qt::QueuedConnection);
+    connect(&m_pimpl->fileScanner, &FileScanner::processingUpdateFileProgress,
+            this, &MainWindow::onProcessingUpdateFileProgress, Qt::QueuedConnection);
+    connect(&m_pimpl->fileScanner, &FileScanner::processingCompleted,
+            this, &MainWindow::onProcessingCompleted, Qt::QueuedConnection);
 
     show();
 }
@@ -413,7 +419,30 @@ void MainWindow::onFileScanDiffCompleted()
 void MainWindow::onFileDiffApprove()
 {
     auto const checked_files = m_pimpl->fileDiffPage.diffmodel->getCheckedFiles();
-    checked_files.size();
+
+    m_pimpl->progressPage.progress1->setMaximum(static_cast<int>(checked_files.size()));
+    m_pimpl->progressPage.progress1->setValue(0);
+    m_pimpl->progressPage.progress2->show();
+    m_pimpl->central->setCurrentWidget(m_pimpl->progressPage.widget);
+    m_pimpl->fileScanner.startProcessing(checked_files);
+}
+
+void MainWindow::onProcessingUpdateNewFile(std::uintmax_t current_file_indexed, std::uintmax_t current_file_size)
+{
+    m_pimpl->progressPage.progress1->setValue(current_file_indexed);
+    m_pimpl->progressPage.progress2->setMaximum(current_file_size);
+    m_pimpl->progressPage.progress2->setValue(0);
+}
+
+void MainWindow::onProcessingUpdateFileProgress(std::uintmax_t current_file_bytes_processed)
+{
+    m_pimpl->progressPage.progress2->setValue(current_file_bytes_processed);
+}
+
+void MainWindow::onProcessingCompleted()
+{
+    m_pimpl->fileScanner.joinProcessing();
+    m_pimpl->progressPage.labelHeader->setText("Done Scanning.");
 }
 
 void MainWindow::onFileScanChecksumUpdate(std::uintmax_t n_files)

@@ -35,6 +35,7 @@ void FileScanner::addFilesForIndexing(std::vector<std::string> const& files_to_a
 
 void FileScanner::startScanning(std::unique_ptr<BlimpDB> blimpdb)
 {
+    GHULBUS_PRECONDITION(!m_scanThread.joinable());
     m_cancelScanning.store(false);
     m_scanThread = std::thread([this, blimpdb = std::move(blimpdb)]() {
         std::vector<std::string> files_to_process;
@@ -172,6 +173,27 @@ void FileScanner::cancelScanning()
 void FileScanner::joinScanning()
 {
     // @todo: m_scanThread might no longer be joinable if canceled during index diff
+    m_scanThread.join();
+}
+
+void FileScanner::startProcessing(std::vector<FileInfo> const& files)
+{
+    GHULBUS_PRECONDITION(!m_scanThread.joinable());
+    m_scanThread = std::thread([this, files]() {
+        std::uintmax_t n = 0;
+        for (auto const& f : files) {
+            emit processingUpdateNewFile(n++, f.size);
+            for (std::uintmax_t ss = 0; ss < f.size; ss += 1024 * 1024 * 50) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                emit processingUpdateFileProgress(ss);
+            }
+        }
+        emit processingCompleted();
+    });
+}
+
+void FileScanner::joinProcessing()
+{
     m_scanThread.join();
 }
 

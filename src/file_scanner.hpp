@@ -51,6 +51,9 @@ public:
     void cancelScanning();
     void joinScanning();
 
+    void startProcessing(std::vector<FileInfo> const& files);
+    void joinProcessing();
+
     std::vector<FileInfo> const& getIndexList() const;
     FileIndexDiff const& getIndexDiff() const;
 
@@ -59,6 +62,10 @@ signals:
     void indexingUpdate(std::uintmax_t n_files_indexed);
 
     void indexDiffCompleted();
+
+    void processingUpdateNewFile(std::uintmax_t current_file_indexed, std::uintmax_t current_file_size);
+    void processingUpdateFileProgress(std::uintmax_t current_file_bytes_processed);
+    void processingCompleted();
 
     void checksumCalculationUpdate(std::uintmax_t n_total_files_processed);
     void checksumCalculationCompleted();

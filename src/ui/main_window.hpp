@@ -31,6 +31,9 @@ public slots:
     void onFileScanChecksumUpdate(std::uintmax_t n_files);
     void onFileScanChecksumCompleted();
     void onFileDiffApprove();
+    void onProcessingUpdateNewFile(std::uintmax_t current_file_indexed, std::uintmax_t current_file_size);
+    void onProcessingUpdateFileProgress(std::uintmax_t current_file_bytes_processed);
+    void onProcessingCompleted();
 
 
 };
