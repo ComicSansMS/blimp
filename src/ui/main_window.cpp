@@ -382,8 +382,10 @@ void MainWindow::onCancelFileScan()
 {
     m_pimpl->progressPage.buttonCancel->setEnabled(false);
     m_pimpl->fileScanner.cancelScanning();
-    m_pimpl->progressPage.buttonCancel->setEnabled(true);
     statusBar()->showMessage(tr("Scanning canceled."), 5000);
+    if (!m_pimpl->blimpdb) {
+        m_pimpl->blimpdb = m_pimpl->fileScanner.joinScanning();
+    }
 }
 
 void MainWindow::onFileScanIndexingUpdate(std::uintmax_t n_files)
@@ -402,7 +404,7 @@ void MainWindow::onFileScanIndexingCompleted(std::uintmax_t n_files)
 
 void MainWindow::onFileScanDiffCompleted()
 {
-    m_pimpl->fileScanner.joinScanning();
+    m_pimpl->blimpdb = m_pimpl->fileScanner.joinScanning();
     auto const& index = m_pimpl->fileScanner.getIndexList();
     std::uintmax_t const total_size =
         std::accumulate(begin(index), end(index), uintmax_t{ 0 }, [](std::uintmax_t acc, FileInfo const& finfo)
@@ -424,19 +426,21 @@ void MainWindow::onFileDiffApprove()
     m_pimpl->progressPage.progress1->setValue(0);
     m_pimpl->progressPage.progress2->show();
     m_pimpl->central->setCurrentWidget(m_pimpl->progressPage.widget);
-    m_pimpl->fileScanner.startProcessing(checked_files);
+    m_pimpl->fileScanner.startProcessing(checked_files, std::move(m_pimpl->blimpdb));
 }
 
 void MainWindow::onProcessingUpdateNewFile(std::uintmax_t current_file_indexed, std::uintmax_t current_file_size)
 {
     m_pimpl->progressPage.progress1->setValue(current_file_indexed);
-    m_pimpl->progressPage.progress2->setMaximum(current_file_size);
+    m_pimpl->progressPage.progress2->setMaximum(current_file_size >> 20);
     m_pimpl->progressPage.progress2->setValue(0);
+    m_pimpl->progressPage.labelProgress1low->setText(tr("Indexing %1 of %2...")
+        .arg(QString::number(current_file_indexed), QString::number(m_pimpl->fileScanner.getIndexList().size())));
 }
 
 void MainWindow::onProcessingUpdateFileProgress(std::uintmax_t current_file_bytes_processed)
 {
-    m_pimpl->progressPage.progress2->setValue(current_file_bytes_processed);
+    m_pimpl->progressPage.progress2->setValue(current_file_bytes_processed >> 20);
 }
 
 void MainWindow::onProcessingCompleted()

@@ -36,8 +36,13 @@ void FileScanner::addFilesForIndexing(std::vector<std::string> const& files_to_a
 void FileScanner::startScanning(std::unique_ptr<BlimpDB> blimpdb)
 {
     GHULBUS_PRECONDITION(!m_scanThread.joinable());
+    GHULBUS_ASSERT(!m_dbReturnChannel);
     m_cancelScanning.store(false);
-    m_scanThread = std::thread([this, blimpdb = std::move(blimpdb)]() {
+    m_scanThread = std::thread([this, blimpdb_ptr = std::move(blimpdb)]() mutable {
+        BlimpDB* blimpdb = blimpdb_ptr.get();
+        auto finalizer_dbReturn = Ghulbus::finally([this, blimpdb_ptr = std::move(blimpdb_ptr)]() mutable {
+            m_dbReturnChannel = std::move(blimpdb_ptr);
+        });
         std::vector<std::string> files_to_process;
         {
             std::unique_lock<std::mutex> lk(m_mtx);
@@ -68,34 +73,6 @@ void FileScanner::startScanning(std::unique_ptr<BlimpDB> blimpdb)
         auto const indexDiffDurationMsecs = std::chrono::duration_cast<std::chrono::milliseconds>(indexDiffDuration);
         GHULBUS_LOG(Info, "Index diffing complete after " << indexDiffDurationMsecs.count() << " milliseconds.");
         emit indexDiffCompleted();
-
-        /*
-        std::size_t files_processed = 0;
-        std::vector<Hash> hashes;
-        hashes.reserve(m_fileIndexList.size());
-        m_timings.hashingStart = std::chrono::steady_clock::now();
-        for(auto const& f : m_fileIndexList) {
-            hashes.push_back(calculateHash(f));
-            ++files_processed;
-            emit checksumCalculationUpdate(files_processed);
-            if(m_cancelScanning) {
-                GHULBUS_LOG(Debug, "Aborting scanning due to cancel request.");
-                return;
-            }
-        }
-        m_timings.hashingFinished = std::chrono::steady_clock::now();
-        auto const hashingDuration = m_timings.hashingFinished - m_timings.hashingStart;
-        auto const hashingDurationSeconds = std::chrono::duration_cast<std::chrono::seconds>(hashingDuration);
-        GHULBUS_LOG(Info, "Hashing took " << hashingDurationSeconds.count() << " seconds.");
-
-        m_timings.indexDbUpdateStart = std::chrono::steady_clock::now();
-        auto const file_index_info = blimpdb->updateFileIndex(m_fileIndexList, hashes);
-        m_timings.indexDbUpdateFinished = std::chrono::steady_clock::now();
-        auto const indexDbUpdateDuration = m_timings.indexDbUpdateFinished - m_timings.indexDbUpdateStart;
-        auto const indexDbUpdateDurationMsecs = std::chrono::duration_cast<std::chrono::milliseconds>(indexDbUpdateDuration);
-        GHULBUS_LOG(Info, "Database file index updated. Took " << indexDbUpdateDurationMsecs.count() << " milliseconds.");
-        emit checksumCalculationCompleted();
-        */
     });
 }
 
@@ -144,6 +121,7 @@ Hash FileScanner::calculateHash(FileInfo const& file_info)
     std::size_t const HASH_BUFFER_SIZE = 4096;
     std::array<char, HASH_BUFFER_SIZE> buffer;
     std::size_t bytes_left = file_info.size;
+    std::size_t hash_update = 0;
     CryptoPP::SHA256 hash_calc;
     hash_calc.Restart();
     while(bytes_left > 0) {
@@ -153,7 +131,12 @@ Hash FileScanner::calculateHash(FileInfo const& file_info)
             GHULBUS_THROW(Ghulbus::Exceptions::IOError(), "Error while reading " + file_info.path.string() + ".");
         }
         bytes_left -= bytes_read;
+        hash_update += bytes_read;
         hash_calc.Update(reinterpret_cast<byte const*>(buffer.data()), bytes_read);
+        if (hash_update > (1 << 24)) {
+            hash_update = 0;
+            emit processingUpdateFileProgress(file_info.size - static_cast<std::uintmax_t>(bytes_left));
+        }
     }
     GHULBUS_ASSERT(bytes_left == 0);
     Hash hash;
@@ -164,32 +147,56 @@ Hash FileScanner::calculateHash(FileInfo const& file_info)
 
 void FileScanner::cancelScanning()
 {
-    if(m_scanThread.joinable()) {
-        m_cancelScanning.store(true);
-        m_scanThread.join();
-    }
+    m_cancelScanning.store(true);
 }
 
-void FileScanner::joinScanning()
+std::unique_ptr<BlimpDB> FileScanner::joinScanning()
 {
-    // @todo: m_scanThread might no longer be joinable if canceled during index diff
     m_scanThread.join();
+    return std::move(m_dbReturnChannel);
 }
 
-void FileScanner::startProcessing(std::vector<FileInfo> const& files)
+void FileScanner::startProcessing(std::vector<FileInfo> const& files, std::unique_ptr<BlimpDB> blimpdb)
 {
     GHULBUS_PRECONDITION(!m_scanThread.joinable());
-    m_scanThread = std::thread([this, files]() {
+    m_scanThread = std::thread([this, files, blimpdb = std::move(blimpdb)]() {
         std::uintmax_t n = 0;
+        std::vector<Hash> hashes;
+        hashes.reserve(files.size());
+        m_timings.hashingStart = std::chrono::steady_clock::now();
+        std::size_t files_processed = 0;
         for (auto const& f : files) {
             emit processingUpdateNewFile(n++, f.size);
+            hashes.push_back(calculateHash(f));
+            ++files_processed;
+            if (m_cancelScanning) {
+                GHULBUS_LOG(Debug, "Aborting scanning due to cancel request.");
+                return;
+            }
+        }
+        m_timings.hashingFinished = std::chrono::steady_clock::now();
+        auto const hashingDuration = m_timings.hashingFinished - m_timings.hashingStart;
+        auto const hashingDurationSeconds = std::chrono::duration_cast<std::chrono::seconds>(hashingDuration);
+        GHULBUS_LOG(Info, "Hashing took " << hashingDurationSeconds.count() << " seconds.");
+
+        m_timings.indexDbUpdateStart = std::chrono::steady_clock::now();
+        auto const file_index_info = blimpdb->updateFileIndex(m_fileIndexList, hashes);
+        m_timings.indexDbUpdateFinished = std::chrono::steady_clock::now();
+        auto const indexDbUpdateDuration = m_timings.indexDbUpdateFinished - m_timings.indexDbUpdateStart;
+        auto const indexDbUpdateDurationMsecs = std::chrono::duration_cast<std::chrono::milliseconds>(indexDbUpdateDuration);
+        GHULBUS_LOG(Info, "Database file index updated. Took " << indexDbUpdateDurationMsecs.count() << " milliseconds.");
+        emit checksumCalculationCompleted();
+
+        for (auto const& f : files) {
+            
             for (std::uintmax_t ss = 0; ss < f.size; ss += 1024 * 1024 * 50) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                emit processingUpdateFileProgress(ss);
+                
             }
         }
         emit processingCompleted();
     });
+
 }
 
 void FileScanner::joinProcessing()

@@ -39,6 +39,7 @@ private:
         std::chrono::steady_clock::time_point indexDbUpdateStart;
         std::chrono::steady_clock::time_point indexDbUpdateFinished;
     } m_timings;
+    std::unique_ptr<BlimpDB> m_dbReturnChannel;
 public:
     FileScanner();
     ~FileScanner();
@@ -49,9 +50,9 @@ public:
 
     void startScanning(std::unique_ptr<BlimpDB> blimpdb);
     void cancelScanning();
-    void joinScanning();
+    std::unique_ptr<BlimpDB> joinScanning();
 
-    void startProcessing(std::vector<FileInfo> const& files);
+    void startProcessing(std::vector<FileInfo> const& files, std::unique_ptr<BlimpDB> blimpdb);
     void joinProcessing();
 
     std::vector<FileInfo> const& getIndexList() const;
