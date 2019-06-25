@@ -145,6 +145,57 @@ Hash FileScanner::calculateHash(FileInfo const& file_info)
     return hash;
 }
 
+class IFileProcessor {
+public:
+    IFileProcessor(IFileProcessor const&) = delete;
+    IFileProcessor& operator=(IFileProcessor const&) = delete;
+
+    virtual ~IFileProcessor() = 0;
+    virtual void initialize() = 0;
+    virtual void update(std::vector<char> const& chunk) = 0;
+    virtual void finalize() = 0;
+};
+
+void FileScanner::processFile(FileInfo const& file_info)
+{
+    auto fin = std::fopen(file_info.path.string().c_str(), "rb");
+    if (!fin) {
+        GHULBUS_THROW(Ghulbus::Exceptions::IOError(), "Error opening file " + file_info.path.string() + ".");
+    }
+    auto fin_guard = Ghulbus::finally([&fin]() { int ret = std::fclose(fin); GHULBUS_ASSERT(ret == 0); });
+    std::size_t constexpr FILE_BUFFER_SIZE = 4*1024*1024;
+    std::vector<char> buffer(FILE_BUFFER_SIZE);
+
+    std::size_t bytes_left = file_info.size;
+    std::size_t processing_update = 0;
+
+    IFileProcessor* processor;
+    // initialize processor
+    processor->initialize();
+
+    while (bytes_left > 0) {
+        std::size_t const bytes_to_read = std::min(bytes_left, buffer.size());
+        auto const bytes_read = std::fread(buffer.data(), sizeof(char), bytes_to_read, fin);
+        if (bytes_read != bytes_to_read) {
+            GHULBUS_THROW(Ghulbus::Exceptions::IOError(), "Error while reading " + file_info.path.string() + ".");
+        }
+        bytes_left -= bytes_read;
+        processing_update += bytes_read;
+
+        // update processor
+        processor->update(buffer);
+
+        if (processing_update > (1 << 24)) {
+            processing_update = 0;
+            emit processingUpdateFileProgress(file_info.size - static_cast<std::uintmax_t>(bytes_left));
+        }
+    }
+    GHULBUS_ASSERT(bytes_left == 0);
+
+    // finalize processor
+    processor->finalize();
+}
+
 void FileScanner::cancelScanning()
 {
     m_cancelScanning.store(true);
