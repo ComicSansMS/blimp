@@ -422,6 +422,8 @@ void MainWindow::onFileDiffApprove()
 {
     auto const checked_files = m_pimpl->fileDiffPage.diffmodel->getCheckedFiles();
 
+    m_pimpl->progressPage.labelProgress1high->setText(tr("Processing..."));
+    m_pimpl->progressPage.labelProgress1low->setText(tr(""));
     m_pimpl->progressPage.progress1->setMaximum(static_cast<int>(checked_files.size()));
     m_pimpl->progressPage.progress1->setValue(0);
     m_pimpl->progressPage.progress2->show();
