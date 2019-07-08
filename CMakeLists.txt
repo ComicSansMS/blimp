@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.14)
 cmake_policy(SET CMP0074 NEW)
 
 project(blimp)
@@ -21,8 +21,9 @@ endif()
 
 option(BLIMP_BUILD_TESTS "Determines whether to build tests for blimp" ON)
 
-add_subdirectory(external)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
+find_package(BlimpBuildbox QUIET)
+add_subdirectory(external)
 find_package(Qt5BaseDir)
 if(QT5_BASE_DIR)
     list(APPEND CMAKE_PREFIX_PATH ${QT5_BASE_DIR})
