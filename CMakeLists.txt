@@ -32,6 +32,18 @@ find_package(Qt5Widgets REQUIRED)
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost REQUIRED filesystem)
 
+find_package(ZLIB)
+if(ZLIB_FOUND)
+    add_executable(zlib_demo ${PROJECT_SOURCE_DIR}/src/deflate/zlib_demo.cpp)
+    target_link_libraries(zlib_demo PUBLIC ZLIB::ZLIB)
+    if(WIN32)
+        find_file(ZLIB_DLL NAMES zlib.dll HINTS ${BLIMP_BUILDBOX_DIRECTORY} PATH_SUFFIXES bin)
+        find_file(ZLIBD_DLL NAMES zlibd.dll HINTS ${BLIMP_BUILDBOX_DIRECTORY} PATH_SUFFIXES bin)
+        mark_as_advanced(ZLIB_DLL ZLIBD_DLL)
+        file(COPY ${ZLIBD_DLL} ${ZLIBD_DLL} DESTINATION ${PROJECT_BINARY_DIR})
+    endif()
+endif()
+
 set(BLIMP_SOURCE_DIRECTORY ${PROJECT_SOURCE_DIR}/src)
 set(BLIMP_INCLUDE_DIRECTORY ${PROJECT_SOURCE_DIR}/src)
 
