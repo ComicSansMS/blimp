@@ -1,5 +1,6 @@
 #include <zlib.h>
 
+#include <chrono>
 #include <deque>
 #include <fstream>
 #include <iostream>
@@ -40,6 +41,16 @@ void handleError_deflateEnd(int res)
     }
 }
 
+void handleError_deflate(int res)
+{
+    std::cout << "Error in deflate(): ";
+    if (res == Z_STREAM_ERROR) {
+        std::cout << "Inconsistent stream state.";
+    } else if (res == Z_BUF_ERROR) {
+        std::cout << "Buffer exhaustion.";
+    }
+}
+
 std::vector<char> readInputData(char const* filename)
 {
     std::fstream fin(filename);
@@ -71,6 +82,8 @@ int main()
     zs.avail_in = static_cast<uInt>(data.size());
     if (static_cast<std::size_t>(zs.avail_in) != data.size()) { std::cout << "Input data too big " << std::endl; return 1; }
 
+    auto const t0 = std::chrono::steady_clock::now();
+
     std::unique_ptr<char[]> out_buff(new char[4096]);
 
     std::deque<char> compressed_data;
@@ -79,7 +92,7 @@ int main()
         zs.next_out = reinterpret_cast<Bytef*>(out_buff.get());
         res = deflate(&zs, Z_NO_FLUSH);
         if (res != Z_OK) {
-            std::cout << "Error deflating: " << res << ".\n";
+            handleError_deflate(res);
             return 1;
         }
         compressed_data.insert(compressed_data.end(), &out_buff[0], &out_buff[4096 - zs.avail_out]);
@@ -97,8 +110,11 @@ int main()
         }
     }
 
+    auto const t1 = std::chrono::steady_clock::now();
+
     if (zs.total_out != compressed_data.size()) { std::cout << "Lost some output data...\n"; }
     std::cout << "Compression factor " << ((compressed_data.size() * 100) / data.size()) << "%.\n";
+    std::cout << "Took " << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() << "ms.\n";
 
     res = deflateEnd(&zs);
     if (res != Z_OK) {

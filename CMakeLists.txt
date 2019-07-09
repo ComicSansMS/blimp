@@ -40,7 +40,7 @@ if(ZLIB_FOUND)
         find_file(ZLIB_DLL NAMES zlib.dll HINTS ${BLIMP_BUILDBOX_DIRECTORY} PATH_SUFFIXES bin)
         find_file(ZLIBD_DLL NAMES zlibd.dll HINTS ${BLIMP_BUILDBOX_DIRECTORY} PATH_SUFFIXES bin)
         mark_as_advanced(ZLIB_DLL ZLIBD_DLL)
-        file(COPY ${ZLIBD_DLL} ${ZLIBD_DLL} DESTINATION ${PROJECT_BINARY_DIR})
+        file(COPY ${ZLIB_DLL} ${ZLIBD_DLL} DESTINATION ${PROJECT_BINARY_DIR})
     endif()
 endif()
 
