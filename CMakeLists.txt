@@ -126,6 +126,7 @@ target_link_libraries(blimp PUBLIC
     sqlpp11-connector-sqlite3
     sqlite3
     Qt5::Widgets
+    ${CMAKE_DL_LIBS}
 )
 target_include_directories(blimp PUBLIC external/date)
 target_include_directories(blimp PUBLIC external/sqlpp11/include)
