@@ -22,7 +22,7 @@ endif()
 option(BLIMP_BUILD_TESTS "Determines whether to build tests for blimp" ON)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
-find_package(BlimpBuildbox QUIET)
+find_package(BlimpBuildBox QUIET)
 add_subdirectory(external)
 find_package(Qt5BaseDir)
 if(QT5_BASE_DIR)
