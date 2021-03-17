@@ -6,6 +6,8 @@
 #include <db/table/indexed_locations.hpp>
 #include <db/table/user_selection.hpp>
 #include <db/table/sqlite_master.hpp>
+#include <db/table/storage.hpp>
+#include <db/table/storage_contents.hpp>
 
 #include <exceptions.hpp>
 #include <version.hpp>
@@ -68,6 +70,8 @@ void createBlimpPropertiesTable(sqlpp::sqlite3::connection& db)
     db.execute(blimpdb::table_layout::file_element());
     db.execute(blimpdb::table_layout::snapshot());
     db.execute(blimpdb::table_layout::snapshot_contents());
+    db.execute(blimpdb::table_layout::storage());
+    db.execute(blimpdb::table_layout::storage_contents());
 
     db.execute("CREATE INDEX idx_file_element_locations ON file_element (location_id);");
 

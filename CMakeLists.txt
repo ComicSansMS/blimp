@@ -47,6 +47,12 @@ if(WIN32)
     add_executable(fileio_demo ${PROJECT_SOURCE_DIR}/src/fileio/fileio_demo.cpp)
 endif()
 
+add_library(blimp_plugin_sdk INTERFACE)
+target_include_directories(blimp_plugin_sdk INTERFACE ${PROJECT_SOURCE_DIR}/sdk)
+target_sources(blimp_plugin_sdk INTERFACE ${PROJECT_SOURCE_DIR}/sdk/blimp_plugin_sdk.h)
+
+add_subdirectory(plugins)
+
 set(BLIMP_SOURCE_DIRECTORY ${PROJECT_SOURCE_DIR}/src)
 set(BLIMP_INCLUDE_DIRECTORY ${PROJECT_SOURCE_DIR}/src)
 
@@ -81,6 +87,8 @@ set(BLIMP_TABLE_HEADER_FILES
     ${BLIMP_SOURCE_DIRECTORY}/db/table/snapshot.hpp
     ${BLIMP_SOURCE_DIRECTORY}/db/table/snapshot_contents.hpp
     ${BLIMP_SOURCE_DIRECTORY}/db/table/sqlite_master.hpp
+    ${BLIMP_SOURCE_DIRECTORY}/db/table/storage.hpp
+    ${BLIMP_SOURCE_DIRECTORY}/db/table/storage_contents.hpp
     ${BLIMP_SOURCE_DIRECTORY}/db/table/user_selection.hpp
 )
 source_group("Table Headers" FILES ${BLIMP_TABLE_HEADER_FILES})

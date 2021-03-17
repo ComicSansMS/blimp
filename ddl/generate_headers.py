@@ -10,6 +10,8 @@ ddl_files = [
     'snapshot',
     'snapshot_contents',
     'sqlite_master',
+    'storage',
+    'storage_contents',
     'user_selection',
 ];
 

@@ -6,4 +6,4 @@ find_path(BLIMP_BUILDBOX_DIRECTORY
 )
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(BlimpBuildbox DEFAULT_MSG BLIMP_BUILDBOX_DIRECTORY)
+find_package_handle_standard_args(BlimpBuildBox DEFAULT_MSG BLIMP_BUILDBOX_DIRECTORY)
