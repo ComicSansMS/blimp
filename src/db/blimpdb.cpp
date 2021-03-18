@@ -5,6 +5,8 @@
 #include <db/table/file_element.hpp>
 #include <db/table/indexed_locations.hpp>
 #include <db/table/user_selection.hpp>
+#include <db/table/snapshot.hpp>
+#include <db/table/snapshot_contents.hpp>
 #include <db/table/sqlite_master.hpp>
 #include <db/table/storage.hpp>
 #include <db/table/storage_contents.hpp>
@@ -305,4 +307,39 @@ std::vector<BlimpDB::FileIndexInfo> BlimpDB::updateFileIndex(std::vector<FileInf
     db.execute("PRAGMA synchronous = FULL");
 
     return ret;
+}
+
+std::vector<BlimpDB::SnapshotInfo> BlimpDB::getSnapshots()
+{
+    std::vector<SnapshotInfo> ret;
+
+    auto const tab_snapshot = blimpdb::Snapshot{};
+
+    auto& db = m_pimpl->db;
+
+    auto q_select_snapshots = select(tab_snapshot.snapshotId, tab_snapshot.name, tab_snapshot.date)
+                                .from(tab_snapshot)
+                                .unconditionally();
+
+    for (auto const& r : db(q_select_snapshots)) {
+        auto const d = r.date.value();
+        ret.emplace_back();
+        ret.back().id.i = r.snapshotId;
+        ret.back().name = r.name;
+        sqlpp::chrono::day_point const ddp = r.date;
+        ret.back().date = ddp;
+    }
+
+    return ret;
+}
+
+BlimpDB::SnapshotId BlimpDB::addSnapshot(std::string const& name)
+{
+    auto& db = m_pimpl->db;
+    auto const tab_snapshot = blimpdb::Snapshot{};
+    auto const r =
+    db(insert_into(tab_snapshot).set(tab_snapshot.name = name,
+                                     tab_snapshot.date = date::floor<sqlpp::chrono::days>(std::chrono::system_clock::now())));
+
+    return SnapshotId{ static_cast<int64_t>(r) };
 }

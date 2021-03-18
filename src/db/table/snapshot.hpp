@@ -55,7 +55,7 @@ namespace blimpdb
             const T& operator()() const { return date; }
           };
       };
-      using _traits = sqlpp::make_traits<sqlpp::text, sqlpp::tag::require_insert>;
+      using _traits = sqlpp::make_traits<sqlpp::day_point, sqlpp::tag::require_insert>;
     };
   }
 

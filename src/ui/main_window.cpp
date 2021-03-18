@@ -14,7 +14,9 @@
 
 #include <QBoxLayout>
 #include <QFileDialog>
+#include <QFormLayout>
 #include <QLabel>
+#include <QLineEdit>
 #include <QListView>
 #include <QListWidget>
 #include <QMessageBox>
@@ -186,6 +188,24 @@ struct MainWindow::Pimpl
         }
     } fileDiffPage;
 
+    struct CreateSnapshotPage {
+        QWidget* widget;
+        QFormLayout* layout;
+        QLineEdit* editSnapshotName;
+        QPushButton* buttonCreateSnapshot;
+
+        CreateSnapshotPage(MainWindow* parent)
+            :widget(new QWidget(parent)),
+             layout(new QFormLayout(widget)),
+             editSnapshotName(new QLineEdit(widget)),
+             buttonCreateSnapshot(new QPushButton(widget))
+        {
+            layout->addRow("Snapshot Name: ", editSnapshotName);
+            buttonCreateSnapshot->setText("Create Snapshot");
+            layout->addWidget(buttonCreateSnapshot);
+        }
+    } createSnapshotPage;
+
     struct StatusBarWidgets {
         QLabel* progressLabel;
         QProgressBar* progressBar;
@@ -200,6 +220,7 @@ struct MainWindow::Pimpl
     Pimpl(MainWindow* parent)
         :central(new QStackedWidget(parent)),
          welcomePage(parent), scanSelectPage(parent), progressPage(parent), fileDiffPage(parent),
+         createSnapshotPage(parent),
          numberOfFilesInIndex(0)
     {
     }
@@ -239,6 +260,11 @@ MainWindow::MainWindow()
     connect(m_pimpl->fileDiffPage.buttonOk, &QPushButton::clicked,
             this, &MainWindow::onFileDiffApprove);
     m_pimpl->central->addWidget(m_pimpl->fileDiffPage.widget);
+
+    // create snapshot page
+    connect(m_pimpl->createSnapshotPage.buttonCreateSnapshot, &QPushButton::clicked,
+            this, &MainWindow::onCreateSnapshotRequest);
+    m_pimpl->central->addWidget(m_pimpl->createSnapshotPage.widget);
 
     m_pimpl->central->setCurrentWidget(m_pimpl->welcomePage.widget);
     setCentralWidget(m_pimpl->central);
@@ -422,6 +448,11 @@ void MainWindow::onFileDiffApprove()
 {
     auto const checked_files = m_pimpl->fileDiffPage.diffmodel->getCheckedFiles();
 
+    auto const snapshots = m_pimpl->blimpdb->getSnapshots();
+    m_pimpl->createSnapshotPage.editSnapshotName->setText(QString("Snapshot #%1").arg(snapshots.size()));
+    m_pimpl->central->setCurrentWidget(m_pimpl->createSnapshotPage.widget);
+
+    /*
     m_pimpl->progressPage.labelProgress1high->setText(tr("Processing..."));
     m_pimpl->progressPage.labelProgress1low->setText(tr(""));
     m_pimpl->progressPage.progress1->setMaximum(static_cast<int>(checked_files.size()));
@@ -429,6 +460,12 @@ void MainWindow::onFileDiffApprove()
     m_pimpl->progressPage.progress2->show();
     m_pimpl->central->setCurrentWidget(m_pimpl->progressPage.widget);
     m_pimpl->fileScanner.startProcessing(checked_files, std::move(m_pimpl->blimpdb));
+    */
+}
+
+void MainWindow::onCreateSnapshotRequest()
+{
+    m_pimpl->blimpdb->addSnapshot(m_pimpl->createSnapshotPage.editSnapshotName->text().toStdString());
 }
 
 void MainWindow::onProcessingUpdateNewFile(std::uintmax_t current_file_indexed, std::uintmax_t current_file_size)

@@ -4,6 +4,8 @@
 #include <file_hash.hpp>
 #include <file_info.hpp>
 
+#include <date/date.h>
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -24,6 +26,16 @@ public:
 
         FileIndexInfo(std::uint64_t n_id, FileSyncStatus n_status) : id(n_id), status(n_status) {}
     };
+
+    struct SnapshotId {
+        int64_t i;
+    };
+
+    struct SnapshotInfo {
+        SnapshotId id;
+        std::string name;
+        date::year_month_day date;
+    };
 private:
     struct Pimpl;
     std::unique_ptr<Pimpl> m_pimpl;
@@ -41,6 +53,10 @@ public:
 
     std::vector<FileIndexInfo> updateFileIndex(std::vector<FileInfo> const& fresh_index,
                                                std::vector<Hash> const& hashes);
+
+    std::vector<SnapshotInfo> getSnapshots();
+
+    SnapshotId addSnapshot(std::string const& name);
 private:
     void createNewFileDatabase(std::string const& db_filename);
     void openExistingFileDatabase(std::string const& db_filename);
