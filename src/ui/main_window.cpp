@@ -193,6 +193,7 @@ struct MainWindow::Pimpl
         QFormLayout* layout;
         QLineEdit* editSnapshotName;
         QPushButton* buttonCreateSnapshot;
+        std::vector<FileInfo> checked_files;
 
         CreateSnapshotPage(MainWindow* parent)
             :widget(new QWidget(parent)),
@@ -446,7 +447,7 @@ void MainWindow::onFileScanDiffCompleted()
 
 void MainWindow::onFileDiffApprove()
 {
-    auto const checked_files = m_pimpl->fileDiffPage.diffmodel->getCheckedFiles();
+    m_pimpl->createSnapshotPage.checked_files = m_pimpl->fileDiffPage.diffmodel->getCheckedFiles();
 
     auto const snapshots = m_pimpl->blimpdb->getSnapshots();
     m_pimpl->createSnapshotPage.editSnapshotName->setText(QString("Snapshot #%1").arg(snapshots.size()));
@@ -465,7 +466,9 @@ void MainWindow::onFileDiffApprove()
 
 void MainWindow::onCreateSnapshotRequest()
 {
-    m_pimpl->blimpdb->addSnapshot(m_pimpl->createSnapshotPage.editSnapshotName->text().toStdString());
+    BlimpDB::SnapshotId const snapshot_id =
+        m_pimpl->blimpdb->addSnapshot(m_pimpl->createSnapshotPage.editSnapshotName->text().toStdString());
+
 }
 
 void MainWindow::onProcessingUpdateNewFile(std::uintmax_t current_file_indexed, std::uintmax_t current_file_size)

@@ -18,8 +18,6 @@ public:
         CreateNew
     };
 
-    using FileElementId = std::uint64_t;
-
     struct FileIndexInfo {
         std::uint64_t id;
         FileSyncStatus status;

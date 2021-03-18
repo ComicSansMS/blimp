@@ -30,7 +30,7 @@ if(QT5_BASE_DIR)
 endif()
 find_package(Qt5Widgets REQUIRED)
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost REQUIRED filesystem)
+find_package(Boost REQUIRED filesystem system)
 
 find_package(ZLIB)
 if(ZLIB_FOUND)
@@ -61,6 +61,7 @@ set(BLIMP_SOURCE_FILES
     ${BLIMP_SOURCE_DIRECTORY}/file_bundling.cpp
     ${BLIMP_SOURCE_DIRECTORY}/file_hash.cpp
     ${BLIMP_SOURCE_DIRECTORY}/file_processor.cpp
+    ${BLIMP_SOURCE_DIRECTORY}/storage_plugin.cpp
     ${BLIMP_SOURCE_DIRECTORY}/db/blimpdb.cpp
 )
 
@@ -73,6 +74,7 @@ set(BLIMP_HEADER_FILES
     ${BLIMP_SOURCE_DIRECTORY}/storage.hpp
     ${BLIMP_SOURCE_DIRECTORY}/storage_aws_glacier.hpp
     ${BLIMP_SOURCE_DIRECTORY}/storage_filesystem.hpp
+    ${BLIMP_SOURCE_DIRECTORY}/storage_plugin.hpp
     ${BLIMP_SOURCE_DIRECTORY}/version.hpp
     ${BLIMP_SOURCE_DIRECTORY}/db/blimpdb.hpp
 )
@@ -127,11 +129,13 @@ add_executable(blimp
 )
 
 target_include_directories(blimp PUBLIC ${BLIMP_INCLUDE_DIRECTORY})
+target_include_directories(blimp PUBLIC ${PROJECT_SOURCE_DIR}/sdk)
 target_link_libraries(blimp PUBLIC
     aws-cpp-sdk-core
     aws-cpp-sdk-glacier
     Boost::disable_autolinking
     Boost::filesystem
+    Boost::system
     cryptopp-static
     gbBase
     sqlpp11-connector-sqlite3

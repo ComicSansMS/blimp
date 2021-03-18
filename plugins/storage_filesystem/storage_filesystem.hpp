@@ -5,6 +5,8 @@
 
 #include <storage_filesystem_export.h>
 
+extern "C" STORAGE_FILESYSTEM_EXPORT BlimpPluginInfo blimp_plugin_api_info();
+
 extern "C" STORAGE_FILESYSTEM_EXPORT int foo();
 
 #endif
