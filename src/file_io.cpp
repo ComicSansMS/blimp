@@ -18,7 +18,7 @@ struct FileIO::Pimpl {
         :beginReadyChunk(0), endReadyChunk(0), fin(nullptr)
     {
         chunks.reserve(4);
-        for (int i = 0; i < 4; ++i) { chunks.emplace_back(1024*1024*1024); }
+        for (int i = 0; i < 4; ++i) { chunks.emplace_back(1024*1024); }
     }
 };
 
@@ -45,7 +45,11 @@ void FileIO::startReading(boost::filesystem::path const& p)
 }
 
 void FileIO::cancelReading()
-{}
+{
+    std::fclose(m_pimpl->fin);
+    m_pimpl->fin = nullptr;
+    m_pimpl->filepath = boost::filesystem::path{};
+}
 
 bool FileIO::hasMoreChunks() const
 {

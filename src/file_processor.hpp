@@ -22,7 +22,7 @@ class FileProcessor : public QObject
 {
     Q_OBJECT
 private:
-    bool m_cancelProcessing;
+    std::atomic<bool> m_cancelProcessing;
     std::mutex m_mtx;
     std::thread m_processingThread;
     std::vector<FileInfo> m_filesToProcess;
@@ -51,6 +51,7 @@ signals:
     void processingUpdateNewFile(std::uintmax_t current_file_indexed, std::uintmax_t current_file_size);
     void processingUpdateFileProgress(std::uintmax_t current_file_bytes_processed);
     void processingCompleted();
+    void processingCanceled();
 private:
     Hash calculateHash(FileInfo const& file_info);
 };

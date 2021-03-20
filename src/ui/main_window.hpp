@@ -20,6 +20,8 @@ public:
 
     ~MainWindow();
 
+    void closeEvent(QCloseEvent* close_event) override;
+
 public slots:
     void onNewDatabase();
     void onOpenDatabase();
@@ -37,6 +39,7 @@ public slots:
     void onCreateSnapshotRequest();
     void onCreateSnapshotCancel();
     void onCancelFileProcessing();
+    void onProcessingCanceled();
 
 
 };

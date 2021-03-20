@@ -18,14 +18,18 @@ FileProcessor::FileProcessor()
 {}
 
 FileProcessor::~FileProcessor()
-{}
+{
+    if (m_processingThread.joinable()) {
+        m_processingThread.join();
+    }
+}
 
 void FileProcessor::startProcessing(BlimpDB::SnapshotId snapshot_id, std::vector<FileInfo>&& files, std::unique_ptr<BlimpDB>&& blimpdb)
 {
     GHULBUS_PRECONDITION(!m_dbReturnChannel);
     m_dbReturnChannel = std::move(blimpdb);
     m_filesToProcess = std::move(files);
-    m_cancelProcessing = false;
+    m_cancelProcessing.store(false);
     m_processingThread = std::thread([this, snapshot_id]() {
         FileIO fio;
         std::size_t file_index = 0;
@@ -43,7 +47,9 @@ void FileProcessor::startProcessing(BlimpDB::SnapshotId snapshot_id, std::vector
                 // join checksum
                 // update db
                 emit processingUpdateFileProgress(bytes_read);
+                if (m_cancelProcessing.load()) { emit processingCanceled(); return; }
             }
+            if (m_cancelProcessing.load()) { emit processingCanceled(); return; }
             ++file_index;
         }
         emit processingCompleted();
@@ -52,8 +58,7 @@ void FileProcessor::startProcessing(BlimpDB::SnapshotId snapshot_id, std::vector
 
 void FileProcessor::cancelProcessing()
 {
-    std::lock_guard<std::mutex> lk(m_mtx);
-    m_cancelProcessing = true;
+    m_cancelProcessing.store(true);
 }
 
 std::unique_ptr<BlimpDB> FileProcessor::joinProcessing()

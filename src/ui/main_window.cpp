@@ -12,9 +12,11 @@
 
 #include <gbBase/Assert.hpp>
 #include <gbBase/Log.hpp>
+#include <gbBase/UnusedVariable.hpp>
 
 #include <QBoxLayout>
 #include <QCheckBox>
+#include <QCloseEvent>
 #include <QFileDialog>
 #include <QFormLayout>
 #include <QLabel>
@@ -301,12 +303,29 @@ MainWindow::MainWindow()
             this, &MainWindow::onProcessingUpdateFileProgress, Qt::QueuedConnection);
     connect(&m_pimpl->fileProcessor, &FileProcessor::processingCompleted,
             this, &MainWindow::onProcessingCompleted, Qt::QueuedConnection);
+    connect(&m_pimpl->fileProcessor, &FileProcessor::processingCanceled,
+            this, &MainWindow::onProcessingCanceled, Qt::QueuedConnection);
 
     show();
 }
 
 MainWindow::~MainWindow()
 {
+}
+
+void MainWindow::closeEvent(QCloseEvent* close_event)
+{
+    GHULBUS_UNUSED_VARIABLE(close_event);
+    auto const answer = QMessageBox::warning(this, "Blimp",
+                                             "Do you want to quit blimp and abort any running operations?",
+                                             QMessageBox::Yes, QMessageBox::No);
+    if (answer == QMessageBox::No) {
+        close_event->ignore();
+    } else {
+        m_pimpl->fileScanner.cancelScanning();
+        m_pimpl->fileProcessor.cancelProcessing();
+        close_event->accept();
+    }
 }
 
 void MainWindow::onNewDatabase()
@@ -507,10 +526,13 @@ void MainWindow::onCancelFileProcessing()
 {
     m_pimpl->progressPage.buttonCancel->setEnabled(false);
     m_pimpl->fileProcessor.cancelProcessing();
+}
+
+void MainWindow::onProcessingCanceled()
+{
     statusBar()->showMessage(tr("Processing canceled."), 5000);
-    if (!m_pimpl->blimpdb) {
-        m_pimpl->blimpdb = m_pimpl->fileProcessor.joinProcessing();
-    }
+    GHULBUS_ASSERT(!m_pimpl->blimpdb);
+    m_pimpl->blimpdb = m_pimpl->fileProcessor.joinProcessing();
 }
 
 void MainWindow::onProcessingUpdateNewFile(std::uintmax_t current_file_indexed, std::uintmax_t current_file_size)
