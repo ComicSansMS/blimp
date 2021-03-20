@@ -30,7 +30,7 @@ if(QT5_BASE_DIR)
 endif()
 find_package(Qt5Widgets REQUIRED)
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost REQUIRED filesystem system)
+find_package(Boost REQUIRED filesystem system thread)
 
 find_package(ZLIB)
 if(ZLIB_FOUND)
@@ -141,6 +141,7 @@ target_link_libraries(blimp PUBLIC
     Boost::disable_autolinking
     Boost::filesystem
     Boost::system
+    Boost::thread
     cryptopp-static
     gbBase
     sqlpp11-connector-sqlite3
