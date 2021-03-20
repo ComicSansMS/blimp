@@ -10,6 +10,8 @@
 #include <rijndael.h>
 #include <aes.h>
 
+#include <storage_plugin.hpp>
+
 #pragma warning(push)
 #pragma warning(disable: 4242)
 #include <QApplication>
@@ -24,6 +26,10 @@
 #   include <stdlib.h>
 #   include <crtdbg.h>
 #endif
+
+#define TO_STRING_UNWRAPPED(x) #x
+#define TOSTRING(x) TO_STRING_UNWRAPPED(x)
+#define BLIMP_BUILD_CONFIGURATION_STRING TOSTRING(BLIMP_BUILD_CONFIGURATION)
 
 int main(int argc, char* argv[])
 {
@@ -49,6 +55,9 @@ int main(int argc, char* argv[])
     //aes_encrypt.SetKey(key, sizeof(key));
     //byte b[CryptoPP::AESEncryption::BLOCKSIZE] = "BLA";
     //aes_encrypt.ProcessBlock(b);
+
+    StoragePlugin plug("plugins/storage_filesystem/" BLIMP_BUILD_CONFIGURATION_STRING "/storage_filesystem.dll");
+    GHULBUS_LOG(Info, "Plugin loaded " << plug.plugin_name());
 
     Aws::SDKOptions opt;
     Aws::InitAPI(opt);

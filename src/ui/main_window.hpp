@@ -35,6 +35,7 @@ public slots:
     void onProcessingUpdateFileProgress(std::uintmax_t current_file_bytes_processed);
     void onProcessingCompleted();
     void onCreateSnapshotRequest();
+    void onCreateSnapshotCancel();
 
 
 };

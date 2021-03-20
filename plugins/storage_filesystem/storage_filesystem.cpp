@@ -1,10 +1,5 @@
 #include <storage_filesystem.hpp>
 
-int foo()
-{
-    return 42;
-}
-
 BlimpPluginInfo blimp_plugin_api_info()
 {
     BlimpPluginInfo ret;

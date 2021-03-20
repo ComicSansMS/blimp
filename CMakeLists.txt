@@ -60,7 +60,6 @@ set(BLIMP_SOURCE_FILES
     ${BLIMP_SOURCE_DIRECTORY}/main.cpp
     ${BLIMP_SOURCE_DIRECTORY}/file_bundling.cpp
     ${BLIMP_SOURCE_DIRECTORY}/file_hash.cpp
-    ${BLIMP_SOURCE_DIRECTORY}/file_processor.cpp
     ${BLIMP_SOURCE_DIRECTORY}/storage_plugin.cpp
     ${BLIMP_SOURCE_DIRECTORY}/db/blimpdb.cpp
 )
@@ -70,7 +69,6 @@ set(BLIMP_HEADER_FILES
     ${BLIMP_SOURCE_DIRECTORY}/file_bundling.hpp
     ${BLIMP_SOURCE_DIRECTORY}/file_hash.hpp
     ${BLIMP_SOURCE_DIRECTORY}/file_info.hpp
-    ${BLIMP_SOURCE_DIRECTORY}/file_processor.hpp
     ${BLIMP_SOURCE_DIRECTORY}/storage.hpp
     ${BLIMP_SOURCE_DIRECTORY}/storage_aws_glacier.hpp
     ${BLIMP_SOURCE_DIRECTORY}/storage_filesystem.hpp
@@ -147,6 +145,7 @@ target_include_directories(blimp PUBLIC external/date)
 target_include_directories(blimp PUBLIC external/sqlpp11/include)
 target_include_directories(blimp PUBLIC external/sqlpp11-connector-sqlite3/include)
 target_compile_definitions(blimp PUBLIC $<$<STREQUAL:$<CXX_COMPILER_ID>,MSVC>:_CRT_SECURE_NO_WARNINGS>)
+target_compile_definitions(blimp PUBLIC BLIMP_BUILD_CONFIGURATION=$<CONFIG>)
 target_compile_options(blimp PUBLIC $<$<AND:$<STREQUAL:$<CXX_COMPILER_ID>,MSVC>,$<NOT:$<CONFIG:Debug>>>:/Zo>)
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT blimp)

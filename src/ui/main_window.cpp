@@ -13,6 +13,7 @@
 #include <gbBase/Log.hpp>
 
 #include <QBoxLayout>
+#include <QCheckBox>
 #include <QFileDialog>
 #include <QFormLayout>
 #include <QLabel>
@@ -192,18 +193,28 @@ struct MainWindow::Pimpl
         QWidget* widget;
         QFormLayout* layout;
         QLineEdit* editSnapshotName;
+        QCheckBox* checkboxForceChecksum;
         QPushButton* buttonCreateSnapshot;
+        QPushButton* buttonCancel;
         std::vector<FileInfo> checked_files;
 
         CreateSnapshotPage(MainWindow* parent)
             :widget(new QWidget(parent)),
              layout(new QFormLayout(widget)),
              editSnapshotName(new QLineEdit(widget)),
-             buttonCreateSnapshot(new QPushButton(widget))
+             checkboxForceChecksum(new QCheckBox(widget)),
+             buttonCreateSnapshot(new QPushButton(widget)),
+             buttonCancel(new QPushButton(widget))
         {
             layout->addRow("Snapshot Name: ", editSnapshotName);
+            checkboxForceChecksum->setText("Recompute checksums even for unchanged files");
+            checkboxForceChecksum->setChecked(false);
+            checkboxForceChecksum->setEnabled(false);
+            layout->addWidget(checkboxForceChecksum);
             buttonCreateSnapshot->setText("Create Snapshot");
             layout->addWidget(buttonCreateSnapshot);
+            buttonCancel->setText("Cancel");
+            layout->addWidget(buttonCancel);
         }
     } createSnapshotPage;
 
@@ -265,6 +276,8 @@ MainWindow::MainWindow()
     // create snapshot page
     connect(m_pimpl->createSnapshotPage.buttonCreateSnapshot, &QPushButton::clicked,
             this, &MainWindow::onCreateSnapshotRequest);
+    connect(m_pimpl->createSnapshotPage.buttonCancel, &QPushButton::clicked,
+            this, &MainWindow::onCreateSnapshotCancel);
     m_pimpl->central->addWidget(m_pimpl->createSnapshotPage.widget);
 
     m_pimpl->central->setCurrentWidget(m_pimpl->welcomePage.widget);
@@ -469,6 +482,13 @@ void MainWindow::onCreateSnapshotRequest()
     BlimpDB::SnapshotId const snapshot_id =
         m_pimpl->blimpdb->addSnapshot(m_pimpl->createSnapshotPage.editSnapshotName->text().toStdString());
 
+}
+
+void MainWindow::onCreateSnapshotCancel()
+{
+    m_pimpl->createSnapshotPage.checked_files.clear();
+    m_pimpl->blimpdb.reset();
+    m_pimpl->central->setCurrentWidget(m_pimpl->welcomePage.widget);
 }
 
 void MainWindow::onProcessingUpdateNewFile(std::uintmax_t current_file_indexed, std::uintmax_t current_file_size)
