@@ -27,10 +27,6 @@
 #   include <crtdbg.h>
 #endif
 
-#define TO_STRING_UNWRAPPED(x) #x
-#define TOSTRING(x) TO_STRING_UNWRAPPED(x)
-#define BLIMP_BUILD_CONFIGURATION_STRING TOSTRING(BLIMP_BUILD_CONFIGURATION)
-
 int main(int argc, char* argv[])
 {
 #if BOOST_COMP_MSVC && !defined NDEBUG
@@ -56,7 +52,7 @@ int main(int argc, char* argv[])
     //byte b[CryptoPP::AESEncryption::BLOCKSIZE] = "BLA";
     //aes_encrypt.ProcessBlock(b);
 
-    StoragePlugin plug("plugins/storage_filesystem/" BLIMP_BUILD_CONFIGURATION_STRING "/storage_filesystem.dll");
+    StoragePlugin plug("storage_filesystem");
     GHULBUS_LOG(Info, "Plugin loaded " << plug.plugin_name());
 
     Aws::SDKOptions opt;

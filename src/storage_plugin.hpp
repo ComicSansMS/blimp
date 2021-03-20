@@ -1,15 +1,14 @@
 #ifndef BLIMP_INCLUDE_GUARD_STORAGE_PLUGIN_HPP
 #define BLIMP_INCLUDE_GUARD_STORAGE_PLUGIN_HPP
 
-#include <boost/filesystem/path.hpp>
-
 #include <memory>
+#include <string>
 
 class StoragePlugin {
     struct Pimpl;
     std::unique_ptr<Pimpl> m_pimpl;
 public:
-    StoragePlugin(boost::filesystem::path const& dll_file);
+    StoragePlugin(std::string const& plugin_name);
     ~StoragePlugin();
 
     StoragePlugin(StoragePlugin const&) = delete;

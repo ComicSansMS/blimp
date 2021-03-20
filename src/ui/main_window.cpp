@@ -8,6 +8,7 @@
 #include <db/blimpdb.hpp>
 
 #include <file_scanner.hpp>
+#include <file_processor.hpp>
 
 #include <gbBase/Assert.hpp>
 #include <gbBase/Log.hpp>
@@ -226,6 +227,7 @@ struct MainWindow::Pimpl
     } statusBar;
 
     FileScanner fileScanner;
+    FileProcessor fileProcessor;
     std::uintmax_t numberOfFilesInIndex;
     std::unique_ptr<BlimpDB> blimpdb;
 
@@ -293,11 +295,11 @@ MainWindow::MainWindow()
             this, &MainWindow::onFileScanChecksumUpdate, Qt::QueuedConnection);
     connect(&m_pimpl->fileScanner, &FileScanner::checksumCalculationCompleted,
             this, &MainWindow::onFileScanChecksumCompleted, Qt::QueuedConnection);
-    connect(&m_pimpl->fileScanner, &FileScanner::processingUpdateNewFile,
+    connect(&m_pimpl->fileProcessor, &FileProcessor::processingUpdateNewFile,
             this, &MainWindow::onProcessingUpdateNewFile, Qt::QueuedConnection);
-    connect(&m_pimpl->fileScanner, &FileScanner::processingUpdateFileProgress,
+    connect(&m_pimpl->fileProcessor, &FileProcessor::processingUpdateFileProgress,
             this, &MainWindow::onProcessingUpdateFileProgress, Qt::QueuedConnection);
-    connect(&m_pimpl->fileScanner, &FileScanner::processingCompleted,
+    connect(&m_pimpl->fileProcessor, &FileProcessor::processingCompleted,
             this, &MainWindow::onProcessingCompleted, Qt::QueuedConnection);
 
     show();
@@ -465,23 +467,33 @@ void MainWindow::onFileDiffApprove()
     auto const snapshots = m_pimpl->blimpdb->getSnapshots();
     m_pimpl->createSnapshotPage.editSnapshotName->setText(QString("Snapshot #%1").arg(snapshots.size()));
     m_pimpl->central->setCurrentWidget(m_pimpl->createSnapshotPage.widget);
-
-    /*
-    m_pimpl->progressPage.labelProgress1high->setText(tr("Processing..."));
-    m_pimpl->progressPage.labelProgress1low->setText(tr(""));
-    m_pimpl->progressPage.progress1->setMaximum(static_cast<int>(checked_files.size()));
-    m_pimpl->progressPage.progress1->setValue(0);
-    m_pimpl->progressPage.progress2->show();
-    m_pimpl->central->setCurrentWidget(m_pimpl->progressPage.widget);
-    m_pimpl->fileScanner.startProcessing(checked_files, std::move(m_pimpl->blimpdb));
-    */
 }
 
 void MainWindow::onCreateSnapshotRequest()
 {
-    BlimpDB::SnapshotId const snapshot_id =
-        m_pimpl->blimpdb->addSnapshot(m_pimpl->createSnapshotPage.editSnapshotName->text().toStdString());
-
+    QString const snapshot_name = m_pimpl->createSnapshotPage.editSnapshotName->text();
+    QString snapshot_display = snapshot_name;
+    if (snapshot_display.length() > 32) {
+        snapshot_display.truncate(32);
+        snapshot_display.append("...");
+    }
+    m_pimpl->progressPage.labelHeader->setText(
+        QString("<div style=\"font-size:xx-large;font-weight:bold\">Creating snapshot '%1'...</div>")
+        .arg(snapshot_display));
+    disconnect(m_pimpl->progressPage.buttonCancel, &QPushButton::clicked, nullptr, nullptr);
+    connect(m_pimpl->progressPage.buttonCancel, &QPushButton::clicked,
+            this, &MainWindow::onCancelFileProcessing);
+    m_pimpl->progressPage.labelProgress1high->setText(tr("Processing..."));
+    m_pimpl->progressPage.labelProgress1low->setText(tr(""));
+    m_pimpl->progressPage.progress1->setMaximum(static_cast<int>(m_pimpl->createSnapshotPage.checked_files.size()));
+    m_pimpl->progressPage.progress1->setValue(0);
+    m_pimpl->progressPage.progress2->show();
+    m_pimpl->progressPage.buttonCancel->setEnabled(true);
+    m_pimpl->central->setCurrentWidget(m_pimpl->progressPage.widget);
+    BlimpDB::SnapshotId const snapshot_id = m_pimpl->blimpdb->addSnapshot(snapshot_name.toStdString());
+    m_pimpl->fileProcessor.startProcessing(snapshot_id,
+                                           std::move(m_pimpl->createSnapshotPage.checked_files),
+                                           std::move(m_pimpl->blimpdb));
 }
 
 void MainWindow::onCreateSnapshotCancel()
@@ -491,13 +503,23 @@ void MainWindow::onCreateSnapshotCancel()
     m_pimpl->central->setCurrentWidget(m_pimpl->welcomePage.widget);
 }
 
+void MainWindow::onCancelFileProcessing()
+{
+    m_pimpl->progressPage.buttonCancel->setEnabled(false);
+    m_pimpl->fileProcessor.cancelProcessing();
+    statusBar()->showMessage(tr("Processing canceled."), 5000);
+    if (!m_pimpl->blimpdb) {
+        m_pimpl->blimpdb = m_pimpl->fileProcessor.joinProcessing();
+    }
+}
+
 void MainWindow::onProcessingUpdateNewFile(std::uintmax_t current_file_indexed, std::uintmax_t current_file_size)
 {
     m_pimpl->progressPage.progress1->setValue(current_file_indexed);
     m_pimpl->progressPage.progress2->setMaximum(current_file_size >> 20);
     m_pimpl->progressPage.progress2->setValue(0);
     m_pimpl->progressPage.labelProgress1low->setText(tr("Indexing %1 of %2...")
-        .arg(QString::number(current_file_indexed), QString::number(m_pimpl->fileScanner.getIndexList().size())));
+        .arg(QString::number(current_file_indexed), QString::number(m_pimpl->progressPage.progress1->maximum())));
 }
 
 void MainWindow::onProcessingUpdateFileProgress(std::uintmax_t current_file_bytes_processed)
@@ -507,8 +529,8 @@ void MainWindow::onProcessingUpdateFileProgress(std::uintmax_t current_file_byte
 
 void MainWindow::onProcessingCompleted()
 {
-    m_pimpl->fileScanner.joinProcessing();
-    m_pimpl->progressPage.labelHeader->setText("Done Scanning.");
+    m_pimpl->blimpdb = m_pimpl->fileProcessor.joinProcessing();
+    m_pimpl->progressPage.labelHeader->setText("Done Processing.");
 }
 
 void MainWindow::onFileScanChecksumUpdate(std::uintmax_t n_files)

@@ -36,6 +36,7 @@ public slots:
     void onProcessingCompleted();
     void onCreateSnapshotRequest();
     void onCreateSnapshotCancel();
+    void onCancelFileProcessing();
 
 
 };

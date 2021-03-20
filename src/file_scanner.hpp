@@ -50,7 +50,7 @@ public:
 
     void startScanning(std::unique_ptr<BlimpDB> blimpdb);
     void cancelScanning();
-    std::unique_ptr<BlimpDB> joinScanning();
+    [[nodiscard]] std::unique_ptr<BlimpDB> joinScanning();
 
     void startProcessing(std::vector<FileInfo> const& files, std::unique_ptr<BlimpDB> blimpdb);
     void joinProcessing();
