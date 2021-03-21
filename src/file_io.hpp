@@ -26,6 +26,8 @@ public:
     bool hasMoreChunks() const;
 
     FileChunk const& getNextChunk();
+private:
+    void scheduleChunkRead();
 };
 
 #endif

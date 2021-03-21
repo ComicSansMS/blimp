@@ -2,6 +2,8 @@
 
 #include <gbBase/Log.hpp>
 
+#include <latch>
+
 WorkerPool::WorkerPool(std::size_t n_threads)
     :m_done(false)
 {
@@ -20,13 +22,26 @@ WorkerPool::~WorkerPool()
     for (auto& t : m_threads) { t.join(); }
 }
 
-void WorkerPool::schedule(std::function<void()> task)
+void WorkerPool::schedule(Ghulbus::AnyInvocable<void()> task)
 {
     {
         std::lock_guard<std::mutex> lk(m_mtx);
         m_tasks.emplace_back(std::move(task));
     }
     m_cv.notify_one();
+}
+
+void WorkerPool::cancelAndFlush()
+{
+    std::size_t const n_threads = m_threads.size();
+    std::latch sync(n_threads);
+    {
+        std::lock_guard<std::mutex> lk(m_mtx);
+        m_tasks.clear();
+        for (std::size_t i = 0; i < n_threads; ++i) { m_tasks.emplace_back([&sync]() { sync.arrive_and_wait(); }); }
+    }
+    m_cv.notify_all();
+    sync.wait();
 }
 
 void WorkerPool::work()
