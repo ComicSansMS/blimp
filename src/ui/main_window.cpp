@@ -299,6 +299,10 @@ MainWindow::MainWindow()
             this, &MainWindow::onFileScanChecksumCompleted, Qt::QueuedConnection);
     connect(&m_pimpl->fileProcessor, &FileProcessor::processingUpdateNewFile,
             this, &MainWindow::onProcessingUpdateNewFile, Qt::QueuedConnection);
+    connect(&m_pimpl->fileProcessor, &FileProcessor::processingUpdateHashProgress,
+            this, &MainWindow::onProcessingUpdateHashProgress, Qt::QueuedConnection);
+    connect(&m_pimpl->fileProcessor, &FileProcessor::processingUpdateHashCompleted,
+            this, &MainWindow::onProcessingUpdateHashCompleted, Qt::QueuedConnection);
     connect(&m_pimpl->fileProcessor, &FileProcessor::processingUpdateFileProgress,
             this, &MainWindow::onProcessingUpdateFileProgress, Qt::QueuedConnection);
     connect(&m_pimpl->fileProcessor, &FileProcessor::processingCompleted,
@@ -541,6 +545,18 @@ void MainWindow::onProcessingUpdateNewFile(std::uintmax_t current_file_indexed, 
     m_pimpl->progressPage.progress2->setMaximum(current_file_size >> 20);
     m_pimpl->progressPage.progress2->setValue(0);
     m_pimpl->progressPage.labelProgress1low->setText(tr("Indexing %1 of %2...")
+        .arg(QString::number(current_file_indexed), QString::number(m_pimpl->progressPage.progress1->maximum())));
+}
+
+void MainWindow::onProcessingUpdateHashProgress(std::uintmax_t current_file_bytes_processed)
+{
+    m_pimpl->progressPage.progress2->setValue(current_file_bytes_processed >> 20);
+}
+
+void MainWindow::onProcessingUpdateHashCompleted(std::uintmax_t current_file_indexed, std::uintmax_t current_file_size)
+{
+    m_pimpl->progressPage.progress2->setValue(0);
+    m_pimpl->progressPage.labelProgress1low->setText(tr("Processing %1 of %2...")
         .arg(QString::number(current_file_indexed), QString::number(m_pimpl->progressPage.progress1->maximum())));
 }
 

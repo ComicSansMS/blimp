@@ -34,6 +34,8 @@ public slots:
     void onFileScanChecksumCompleted();
     void onFileDiffApprove();
     void onProcessingUpdateNewFile(std::uintmax_t current_file_indexed, std::uintmax_t current_file_size);
+    void onProcessingUpdateHashProgress(std::uintmax_t current_file_bytes_processed);
+    void onProcessingUpdateHashCompleted(std::uintmax_t current_file_indexed, std::uintmax_t current_file_size);
     void onProcessingUpdateFileProgress(std::uintmax_t current_file_bytes_processed);
     void onProcessingCompleted();
     void onCreateSnapshotRequest();

@@ -49,6 +49,8 @@ public:
 
 signals:
     void processingUpdateNewFile(std::uintmax_t current_file_indexed, std::uintmax_t current_file_size);
+    void processingUpdateHashProgress(std::uintmax_t current_file_bytes_processed);
+    void processingUpdateHashCompleted(std::uintmax_t current_file_indexed, std::uintmax_t current_file_size);
     void processingUpdateFileProgress(std::uintmax_t current_file_bytes_processed);
     void processingCompleted();
     void processingCanceled();

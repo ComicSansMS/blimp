@@ -7,7 +7,6 @@
 #include <gbBase/Assert.hpp>
 #include <gbBase/Log.hpp>
 
-#include <boost/thread/barrier.hpp>
 #include <boost/filesystem/path.hpp>
 
 #include <cstdio>
@@ -33,7 +32,6 @@ void FileProcessor::startProcessing(BlimpDB::SnapshotId snapshot_id, std::vector
         FileIO fio;
         FileHasher hasher(HashType::SHA_256);
         WorkerPool pool(1);
-        boost::barrier barrier(2);
         std::size_t file_index = 0;
         for (auto const& f : m_filesToProcess) {
             // read file chunk
@@ -45,18 +43,23 @@ void FileProcessor::startProcessing(BlimpDB::SnapshotId snapshot_id, std::vector
             while (fio.hasMoreChunks()) {
                 FileChunk const& c = fio.getNextChunk();
                 bytes_read += c.getUsedSize();
-                // calculate checksum (async)
-                pool.schedule([&hasher, &c, &barrier]() { hasher.addData(c); barrier.wait(); });
-                // save to storage
-                // @Todo
-                // join checksum
-                barrier.wait();
-                // update db
-                // @Todo
-                emit processingUpdateFileProgress(bytes_read);
+                hasher.addData(c);
+                emit processingUpdateHashProgress(bytes_read);
                 if (m_cancelProcessing.load()) { emit processingCanceled(); return; }
             }
             GHULBUS_LOG(Debug, "Calculated hash for " << f.path << " is " << to_string(hasher.getHash()));
+            std::size_t const filesize = bytes_read;
+            if (filesize != f.size) {
+                GHULBUS_LOG(Warning, "File size for " << f.path << " changed during processing.");
+            }
+            emit processingUpdateHashCompleted(file_index, filesize);
+            fio.startReading(f.path);
+            bytes_read = 0;
+            while (fio.hasMoreChunks()) {
+                FileChunk const& c = fio.getNextChunk();
+                bytes_read += c.getUsedSize();
+                emit processingUpdateFileProgress(bytes_read);
+            }
             if (m_cancelProcessing.load()) { emit processingCanceled(); return; }
             ++file_index;
         }
