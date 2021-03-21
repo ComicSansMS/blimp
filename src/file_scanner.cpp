@@ -132,7 +132,7 @@ Hash FileScanner::calculateHash(FileInfo const& file_info)
         }
         bytes_left -= bytes_read;
         hash_update += bytes_read;
-        hash_calc.Update(reinterpret_cast<byte const*>(buffer.data()), bytes_read);
+        hash_calc.Update(reinterpret_cast<CryptoPP::byte const*>(buffer.data()), bytes_read);
         if (hash_update > (1 << 24)) {
             hash_update = 0;
             emit processingUpdateFileProgress(file_info.size - static_cast<std::uintmax_t>(bytes_left));
@@ -140,7 +140,7 @@ Hash FileScanner::calculateHash(FileInfo const& file_info)
     }
     GHULBUS_ASSERT(bytes_left == 0);
     Hash hash;
-    hash_calc.Final(reinterpret_cast<byte*>(hash.digest.data()));
+    hash_calc.Final(reinterpret_cast<CryptoPP::byte*>(hash.digest.data()));
     GHULBUS_LOG(Trace, "Hash for " << file_info.path << " is " << to_string(hash) << ".");
     return hash;
 }

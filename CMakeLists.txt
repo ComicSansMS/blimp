@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 cmake_policy(SET CMP0074 NEW)
 
 project(blimp)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/permissive->)
 
@@ -21,7 +21,7 @@ endif()
 
 option(BLIMP_BUILD_TESTS "Determines whether to build tests for blimp" ON)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(BlimpBuildBox QUIET)
 add_subdirectory(external)
 find_package(Qt5BaseDir)
@@ -63,6 +63,7 @@ set(BLIMP_SOURCE_FILES
     ${BLIMP_SOURCE_DIRECTORY}/file_io.cpp
     ${BLIMP_SOURCE_DIRECTORY}/storage_plugin.cpp
     ${BLIMP_SOURCE_DIRECTORY}/plugin_common.cpp
+    ${BLIMP_SOURCE_DIRECTORY}/worker_pool.cpp
     ${BLIMP_SOURCE_DIRECTORY}/db/blimpdb.cpp
 )
 
@@ -79,6 +80,7 @@ set(BLIMP_HEADER_FILES
     ${BLIMP_SOURCE_DIRECTORY}/storage_filesystem.hpp
     ${BLIMP_SOURCE_DIRECTORY}/storage_plugin.hpp
     ${BLIMP_SOURCE_DIRECTORY}/version.hpp
+    ${BLIMP_SOURCE_DIRECTORY}/worker_pool.hpp
     ${BLIMP_SOURCE_DIRECTORY}/db/blimpdb.hpp
 )
 

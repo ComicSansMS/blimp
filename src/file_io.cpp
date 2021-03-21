@@ -1,5 +1,7 @@
 #include <file_io.hpp>
 
+#include <worker_pool.hpp>
+
 #include <gbBase/Assert.hpp>
 #include <gbBase/Exception.hpp>
 #include <gbBase/Finally.hpp>
@@ -13,9 +15,10 @@ struct FileIO::Pimpl {
     std::size_t beginReadyChunk;
     std::size_t endReadyChunk;
     FILE* fin;
+    WorkerPool pool;
 
     Pimpl()
-        :beginReadyChunk(0), endReadyChunk(0), fin(nullptr)
+        :beginReadyChunk(0), endReadyChunk(0), fin(nullptr), pool(1)
     {
         chunks.reserve(4);
         for (int i = 0; i < 4; ++i) { chunks.emplace_back(1024*1024); }
@@ -42,6 +45,11 @@ void FileIO::startReading(boost::filesystem::path const& p)
         GHULBUS_THROW(Ghulbus::Exceptions::IOError{} << Ghulbus::Exception_Info::filename(p.string()),
                       "Unable to open file.");
     }
+    m_pimpl->pool.schedule(
+        []()
+        {
+
+        });
 }
 
 void FileIO::cancelReading()

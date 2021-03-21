@@ -15,11 +15,7 @@ if(BLIMP_BUILD_TESTS)
     add_subdirectory(catch2)
 endif()
 
-if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/cryptopp/CMakeLists.txt)
-    message(FATAL_ERROR "Cryptopp build file not found; Did you remember to fetch the submodules? (git submodule update --init)")
-endif()
-set(BUILD_TESTING OFF CACHE BOOL "")
-add_subdirectory(cryptopp)
+find_package(Cryptopp REQUIRED)
 
 if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/GhulbusBase/CMakeLists.txt)
     message(FATAL_ERROR "GhulbusBase build file not found; Did you remember to fetch the submodules? (git submodule update --init)")
