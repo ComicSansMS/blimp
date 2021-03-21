@@ -279,7 +279,7 @@ std::vector<BlimpDB::FileIndexInfo> BlimpDB::updateFileIndex(std::vector<FileInf
             q_find_fel_prepped.params.locationId = location_id;
             for(auto const& fel_row : db(q_find_fel_prepped)) {
                 auto ts = fel_row.modifiedDate;
-                if(finfo.size != fel_row.fileSize) {
+                if(finfo.size != static_cast<std::uintmax_t>(fel_row.fileSize)) {
                 }
             }
         }
