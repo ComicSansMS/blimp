@@ -41,28 +41,11 @@ namespace blimpdb
       };
       using _traits = sqlpp::make_traits<sqlpp::text, sqlpp::tag::require_insert>;
     };
-    struct HashType
-    {
-      struct _alias_t
-      {
-        static constexpr const char _literal[] =  "hash_type";
-        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
-        template<typename T>
-        struct _member_t
-          {
-            T hashType;
-            T& operator()() { return hashType; }
-            const T& operator()() const { return hashType; }
-          };
-      };
-      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
-    };
   }
 
   struct FileContents: sqlpp::table_t<FileContents,
                FileContents_::ContentId,
-               FileContents_::Hash,
-               FileContents_::HashType>
+               FileContents_::Hash>
   {
     struct _alias_t
     {

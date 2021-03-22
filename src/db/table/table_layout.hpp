@@ -52,8 +52,7 @@ inline constexpr char const* file_contents()
     return R"(
         CREATE TABLE file_contents (
             content_id  INTEGER PRIMARY KEY,
-            hash        TEXT    UNIQUE NOT NULL,
-            hash_type   INTEGER NOT NULL
+            hash        TEXT    UNIQUE NOT NULL
         );)";
 }
 

@@ -36,6 +36,12 @@ inline bool constexpr sqlpp11_debug()
     return true;
 #endif
 }
+
+std::string to_string(boost::filesystem::path const& p)
+{
+    /// @todo: proper unicode suppport
+    return p.generic_string();
+}
 }
 
 struct BlimpDB::Pimpl
@@ -75,7 +81,9 @@ void createBlimpPropertiesTable(sqlpp::sqlite3::connection& db)
     db.execute(blimpdb::table_layout::storage());
     db.execute(blimpdb::table_layout::storage_contents());
 
+    db.execute("CREATE UNIQUE INDEX idx_indexed_locations_paths ON indexed_locations (path);");
     db.execute("CREATE INDEX idx_file_element_locations ON file_element (location_id);");
+    db.execute("CREATE UNIQUE INDEX idx_file_content_hashes ON file_contents (hash);");
 
     db(insert_into(prop_tab).set(prop_tab.id    = "version",
                                  prop_tab.value = std::to_string(BlimpVersion::version())));
@@ -240,11 +248,9 @@ std::vector<BlimpDB::FileIndexInfo> BlimpDB::updateFileIndex(std::vector<FileInf
     auto q_insert_loc_param = insert_into(tab_loc).set(tab_loc.path = parameter(tab_loc.path));
     auto q_insert_loc_prepped = db.prepare(q_insert_loc_param);
     auto q_find_fco_param = select(tab_fco.contentId).from(tab_fco)
-                                                     .where(tab_fco.hash     == parameter(tab_fco.hash) &&
-                                                            tab_fco.hashType == 1);
+                                                     .where(tab_fco.hash     == parameter(tab_fco.hash));
     auto q_find_fco_prepped = db.prepare(q_find_fco_param);
-    auto q_insert_fco_param = insert_into(tab_fco).set(tab_fco.hash     = parameter(tab_fco.hash),
-                                                       tab_fco.hashType = 1);
+    auto q_insert_fco_param = insert_into(tab_fco).set(tab_fco.hash     = parameter(tab_fco.hash));
     auto q_insert_fco_prepped = db.prepare(q_insert_fco_param);
     auto q_find_fel_param = select(all_of(tab_fel)).from(tab_fel)
                                                    .where(tab_fel.locationId == parameter(tab_fel.locationId));
@@ -342,4 +348,66 @@ BlimpDB::SnapshotId BlimpDB::addSnapshot(std::string const& name)
                                      tab_snapshot.date = date::floor<sqlpp::chrono::days>(std::chrono::system_clock::now())));
 
     return SnapshotId{ static_cast<int64_t>(r) };
+}
+
+BlimpDB::FileElementId BlimpDB::newFileContent(FileInfo const& finfo, Hash const& hash)
+{
+    auto& db = m_pimpl->db;
+    auto const tab_file_contents = blimpdb::FileContents{};
+    FileContentId content_id;
+    auto const hash_str = to_string(hash);
+    auto const result_content = db(select(tab_file_contents.contentId)
+                                   .from(tab_file_contents)
+                                   .where(tab_file_contents.hash == hash_str));
+    db.start_transaction();
+    if (!result_content.empty())
+    {
+        auto const& r = result_content.front();
+        content_id = FileContentId{ .i = r.contentId };
+        GHULBUS_LOG(Debug, "Storing file element for " << finfo.path << " under existing content id " << content_id.i);
+    } else {
+        content_id = FileContentId{ .i =
+            static_cast<int64_t>(db(insert_into(tab_file_contents).set(tab_file_contents.hash = hash_str))) };
+        GHULBUS_LOG(Debug, "Storing file element for " << finfo.path << " under new content id " << content_id.i);
+    }
+    FileElementId const ret = newFileElement(finfo, content_id);
+    db.commit_transaction();
+    return ret;
+}
+
+BlimpDB::FileElementId BlimpDB::newFileElement(FileInfo const& finfo, FileContentId const& content_id)
+{
+    auto& db = m_pimpl->db;
+    auto const tab_indexed_locations = blimpdb::IndexedLocations{};
+    auto const tab_file_element = blimpdb::FileElement{};
+
+    auto const result_location = db(select(tab_indexed_locations.locationId)
+                                    .from(tab_indexed_locations)
+                                    .where(tab_indexed_locations.path == to_string(finfo.path)));
+    if (result_location.empty()) {
+        // first time we've seen this file; add a new location and file element
+        int64_t const location_id =
+            db(insert_into(tab_indexed_locations).set(tab_indexed_locations.path = to_string(finfo.path)));
+        int64_t const file_element_id =
+            db(insert_into(tab_file_element).set(tab_file_element.locationId = location_id,
+                                                 tab_file_element.contentId = content_id.i,
+                                                 tab_file_element.fileSize = finfo.size,
+                                                 tab_file_element.modifiedDate = finfo.modified_time));
+        return FileElementId{ .i = file_element_id };
+    } else {
+        // the location is known, we may have this file element already
+        auto const result_file_element =
+            db(select(tab_file_element.fileId)
+               .from(tab_file_element)
+               .where((tab_file_element.contentId == content_id.i) &&
+                      (tab_file_element.modifiedDate == finfo.modified_time)));
+        if (!result_file_element.empty()) { return FileElementId{ .i = result_file_element.front().fileId }; }
+        // first time we've seen this file with this content, create new file element
+        int64_t const file_element_id =
+            db(insert_into(tab_file_element).set(tab_file_element.locationId = result_location.front().locationId,
+                                                 tab_file_element.contentId = content_id.i,
+                                                 tab_file_element.fileSize = finfo.size,
+                                                 tab_file_element.modifiedDate = finfo.modified_time));
+        return FileElementId{ .i = file_element_id };
+    }
 }

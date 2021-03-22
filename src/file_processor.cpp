@@ -10,6 +10,7 @@
 #include <boost/filesystem/path.hpp>
 
 #include <cstdio>
+#include <vector>
 
 FileProcessor::FileProcessor()
     :m_cancelProcessing(false)
@@ -28,11 +29,12 @@ void FileProcessor::startProcessing(BlimpDB::SnapshotId snapshot_id, std::vector
     m_dbReturnChannel = std::move(blimpdb);
     m_filesToProcess = std::move(files);
     m_cancelProcessing.store(false);
-    m_processingThread = std::thread([this, snapshot_id]() {
+    m_processingThread = std::thread([this, snapshot_id, &blimpdb = *m_dbReturnChannel]() {
         FileIO fio;
         FileHasher hasher(HashType::SHA_256);
         WorkerPool pool(1);
         std::size_t file_index = 0;
+        std::vector<BlimpDB::FileElementId> snapshot_contents;
         for (auto const& f : m_filesToProcess) {
             // read file chunk
             emit processingUpdateNewFile(file_index, f.size);
@@ -47,12 +49,15 @@ void FileProcessor::startProcessing(BlimpDB::SnapshotId snapshot_id, std::vector
                 emit processingUpdateHashProgress(bytes_read);
                 if (m_cancelProcessing.load()) { emit processingCanceled(); return; }
             }
-            GHULBUS_LOG(Debug, "Calculated hash for " << f.path << " is " << to_string(hasher.getHash()));
+            Hash const hash = hasher.getHash();
+            GHULBUS_LOG(Debug, "Calculated hash for " << f.path << " is " << to_string(hash));
             std::size_t const filesize = bytes_read;
             if (filesize != f.size) {
+                /// @todo deal with changing files
                 GHULBUS_LOG(Warning, "File size for " << f.path << " changed during processing.");
             }
             emit processingUpdateHashCompleted(file_index, filesize);
+            snapshot_contents.push_back(blimpdb.newFileContent(f, hash));
             fio.startReading(f.path);
             bytes_read = 0;
             while (fio.hasMoreChunks()) {

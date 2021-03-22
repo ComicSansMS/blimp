@@ -7,6 +7,7 @@
 #include <date/date.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -26,6 +27,14 @@ public:
     };
 
     struct SnapshotId {
+        int64_t i;
+    };
+
+    struct FileElementId {
+        int64_t i;
+    };
+
+    struct FileContentId {
         int64_t i;
     };
 
@@ -55,6 +64,10 @@ public:
     std::vector<SnapshotInfo> getSnapshots();
 
     SnapshotId addSnapshot(std::string const& name);
+
+    FileElementId newFileContent(FileInfo const& finfo, Hash const& hash);
+
+    FileElementId newFileElement(FileInfo const& finfo, FileContentId const& content_id);
 private:
     void createNewFileDatabase(std::string const& db_filename);
     void openExistingFileDatabase(std::string const& db_filename);
