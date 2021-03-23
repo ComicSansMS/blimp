@@ -59,13 +59,17 @@ void FileProcessor::startProcessing(BlimpDB::SnapshotId snapshot_id, std::vector
                     GHULBUS_LOG(Warning, "File size for " << f.path << " changed during processing.");
                 }
                 emit processingUpdateHashCompleted(file_index, filesize);
-                snapshot_contents.push_back(blimpdb.newFileContent(f, hash, false));
-                fio.startReading(f.path);
-                bytes_read = 0;
-                while (fio.hasMoreChunks()) {
-                    FileChunk const& c = fio.getNextChunk();
-                    bytes_read += c.getUsedSize();
-                    emit processingUpdateFileProgress(bytes_read);
+                auto const [file_element, content_id, insertion_status] = blimpdb.newFileContent(f, hash, false);
+                snapshot_contents.push_back(file_element);
+                if (insertion_status == BlimpDB::FileContentInsertion::CreatedNew) {
+                    fio.startReading(f.path);
+                    bytes_read = 0;
+                    while (fio.hasMoreChunks()) {
+                        FileChunk const& c = fio.getNextChunk();
+                        bytes_read += c.getUsedSize();
+                        emit processingUpdateFileProgress(bytes_read);
+                        if (m_cancelProcessing.load()) { emit processingCanceled(); return; }
+                    }
                 }
                 if (m_cancelProcessing.load()) { emit processingCanceled(); return; }
             } catch (std::exception& e) {

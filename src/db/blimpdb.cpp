@@ -355,7 +355,8 @@ BlimpDB::SnapshotId BlimpDB::addSnapshot(std::string const& name)
     return SnapshotId{ static_cast<int64_t>(r) };
 }
 
-BlimpDB::FileElementId BlimpDB::newFileContent(FileInfo const& finfo, Hash const& hash, bool do_sync)
+std::tuple<BlimpDB::FileElementId, BlimpDB::FileContentId, BlimpDB::FileContentInsertion>
+    BlimpDB::newFileContent(FileInfo const& finfo, Hash const& hash, bool do_sync)
 {
     auto& db = m_pimpl->db;
     auto const tab_file_contents = blimpdb::FileContents{};
@@ -365,19 +366,22 @@ BlimpDB::FileElementId BlimpDB::newFileContent(FileInfo const& finfo, Hash const
                                    .from(tab_file_contents)
                                    .where(tab_file_contents.hash == hash_str));
     if (do_sync) { db.start_transaction(); }
+    FileContentInsertion content_insertion;
     if (!result_content.empty())
     {
         auto const& r = result_content.front();
         content_id = FileContentId{ .i = r.contentId };
         GHULBUS_LOG(Debug, "Storing file element for " << finfo.path << " under existing content id " << content_id.i);
+        content_insertion = FileContentInsertion::ReferencedExisting;
     } else {
         content_id = FileContentId{ .i =
             static_cast<int64_t>(db(insert_into(tab_file_contents).set(tab_file_contents.hash = hash_str))) };
         GHULBUS_LOG(Debug, "Storing file element for " << finfo.path << " under new content id " << content_id.i);
+        content_insertion = FileContentInsertion::CreatedNew;
     }
     FileElementId const ret = newFileElement(finfo, content_id, false);
     if (do_sync) { db.commit_transaction(); }
-    return ret;
+    return std::make_tuple(ret, content_id, content_insertion);
 }
 
 BlimpDB::FileElementId BlimpDB::newFileElement(FileInfo const& finfo, FileContentId const& content_id, bool do_sync)

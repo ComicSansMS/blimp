@@ -9,6 +9,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <tuple>
 #include <vector>
 
 class BlimpDB
@@ -43,6 +44,11 @@ public:
         std::string name;
         date::year_month_day date;
     };
+
+    enum class FileContentInsertion {
+        CreatedNew,
+        ReferencedExisting
+    };
 private:
     struct Pimpl;
     std::unique_ptr<Pimpl> m_pimpl;
@@ -65,7 +71,8 @@ public:
 
     SnapshotId addSnapshot(std::string const& name);
 
-    FileElementId newFileContent(FileInfo const& finfo, Hash const& hash, bool do_sync = true);
+    std::tuple<FileElementId, FileContentId, FileContentInsertion>
+        newFileContent(FileInfo const& finfo, Hash const& hash, bool do_sync = true);
 
     FileElementId newFileElement(FileInfo const& finfo, FileContentId const& content_id, bool do_sync = true);
 
