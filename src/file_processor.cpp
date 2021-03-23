@@ -35,39 +35,45 @@ void FileProcessor::startProcessing(BlimpDB::SnapshotId snapshot_id, std::vector
         WorkerPool pool(1);
         std::size_t file_index = 0;
         std::vector<BlimpDB::FileElementId> snapshot_contents;
+        blimpdb.startExternalSync();
         for (auto const& f : m_filesToProcess) {
-            // read file chunk
-            emit processingUpdateNewFile(file_index, f.size);
-            GHULBUS_LOG(Debug, "Processing file " << f.path.string());
-            fio.startReading(f.path);
-            std::size_t bytes_read = 0;
-            hasher.restart();
-            while (fio.hasMoreChunks()) {
-                FileChunk const& c = fio.getNextChunk();
-                bytes_read += c.getUsedSize();
-                hasher.addData(c);
-                emit processingUpdateHashProgress(bytes_read);
+            try {
+                // read file chunk
+                emit processingUpdateNewFile(file_index, f.size);
+                GHULBUS_LOG(Debug, "Processing file " << f.path.string());
+                fio.startReading(f.path);
+                std::size_t bytes_read = 0;
+                hasher.restart();
+                while (fio.hasMoreChunks()) {
+                    FileChunk const& c = fio.getNextChunk();
+                    bytes_read += c.getUsedSize();
+                    hasher.addData(c);
+                    emit processingUpdateHashProgress(bytes_read);
+                    if (m_cancelProcessing.load()) { emit processingCanceled(); return; }
+                }
+                Hash const hash = hasher.getHash();
+                GHULBUS_LOG(Debug, "Calculated hash for " << f.path << " is " << to_string(hash));
+                std::size_t const filesize = bytes_read;
+                if (filesize != f.size) {
+                    /// @todo deal with changing files
+                    GHULBUS_LOG(Warning, "File size for " << f.path << " changed during processing.");
+                }
+                emit processingUpdateHashCompleted(file_index, filesize);
+                snapshot_contents.push_back(blimpdb.newFileContent(f, hash, false));
+                fio.startReading(f.path);
+                bytes_read = 0;
+                while (fio.hasMoreChunks()) {
+                    FileChunk const& c = fio.getNextChunk();
+                    bytes_read += c.getUsedSize();
+                    emit processingUpdateFileProgress(bytes_read);
+                }
                 if (m_cancelProcessing.load()) { emit processingCanceled(); return; }
+            } catch (std::exception& e) {
+                GHULBUS_LOG(Error, "Unable to open file " << f.path << ": " << e.what());
             }
-            Hash const hash = hasher.getHash();
-            GHULBUS_LOG(Debug, "Calculated hash for " << f.path << " is " << to_string(hash));
-            std::size_t const filesize = bytes_read;
-            if (filesize != f.size) {
-                /// @todo deal with changing files
-                GHULBUS_LOG(Warning, "File size for " << f.path << " changed during processing.");
-            }
-            emit processingUpdateHashCompleted(file_index, filesize);
-            snapshot_contents.push_back(blimpdb.newFileContent(f, hash));
-            fio.startReading(f.path);
-            bytes_read = 0;
-            while (fio.hasMoreChunks()) {
-                FileChunk const& c = fio.getNextChunk();
-                bytes_read += c.getUsedSize();
-                emit processingUpdateFileProgress(bytes_read);
-            }
-            if (m_cancelProcessing.load()) { emit processingCanceled(); return; }
             ++file_index;
         }
+        blimpdb.commitExternalSync();
         emit processingCompleted();
     });
 }

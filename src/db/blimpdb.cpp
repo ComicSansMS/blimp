@@ -48,6 +48,10 @@ struct BlimpDB::Pimpl
 {
     sqlpp::sqlite3::connection db;
 
+    struct prepared_statements {
+
+    };
+
     Pimpl(sqlpp::sqlite3::connection_config const& conf);
 };
 
@@ -64,6 +68,7 @@ BlimpDB::BlimpDB(std::string const& db_filename, OpenMode mode)
     } else if(mode == OpenMode::OpenExisting) {
         openExistingFileDatabase(db_filename);
     }
+    m_pimpl->db.execute("PRAGMA locking_mode = EXCLUSIVE");
 }
 
 BlimpDB::~BlimpDB() = default;      // needed for pimpl destruction
@@ -350,7 +355,7 @@ BlimpDB::SnapshotId BlimpDB::addSnapshot(std::string const& name)
     return SnapshotId{ static_cast<int64_t>(r) };
 }
 
-BlimpDB::FileElementId BlimpDB::newFileContent(FileInfo const& finfo, Hash const& hash)
+BlimpDB::FileElementId BlimpDB::newFileContent(FileInfo const& finfo, Hash const& hash, bool do_sync)
 {
     auto& db = m_pimpl->db;
     auto const tab_file_contents = blimpdb::FileContents{};
@@ -359,7 +364,7 @@ BlimpDB::FileElementId BlimpDB::newFileContent(FileInfo const& finfo, Hash const
     auto const result_content = db(select(tab_file_contents.contentId)
                                    .from(tab_file_contents)
                                    .where(tab_file_contents.hash == hash_str));
-    db.start_transaction();
+    if (do_sync) { db.start_transaction(); }
     if (!result_content.empty())
     {
         auto const& r = result_content.front();
@@ -370,12 +375,12 @@ BlimpDB::FileElementId BlimpDB::newFileContent(FileInfo const& finfo, Hash const
             static_cast<int64_t>(db(insert_into(tab_file_contents).set(tab_file_contents.hash = hash_str))) };
         GHULBUS_LOG(Debug, "Storing file element for " << finfo.path << " under new content id " << content_id.i);
     }
-    FileElementId const ret = newFileElement(finfo, content_id);
-    db.commit_transaction();
+    FileElementId const ret = newFileElement(finfo, content_id, false);
+    if (do_sync) { db.commit_transaction(); }
     return ret;
 }
 
-BlimpDB::FileElementId BlimpDB::newFileElement(FileInfo const& finfo, FileContentId const& content_id)
+BlimpDB::FileElementId BlimpDB::newFileElement(FileInfo const& finfo, FileContentId const& content_id, bool do_sync)
 {
     auto& db = m_pimpl->db;
     auto const tab_indexed_locations = blimpdb::IndexedLocations{};
@@ -386,6 +391,7 @@ BlimpDB::FileElementId BlimpDB::newFileElement(FileInfo const& finfo, FileConten
                                     .where(tab_indexed_locations.path == to_string(finfo.path)));
     if (result_location.empty()) {
         // first time we've seen this file; add a new location and file element
+        if (do_sync) { db.start_transaction(); }
         int64_t const location_id =
             db(insert_into(tab_indexed_locations).set(tab_indexed_locations.path = to_string(finfo.path)));
         int64_t const file_element_id =
@@ -393,6 +399,7 @@ BlimpDB::FileElementId BlimpDB::newFileElement(FileInfo const& finfo, FileConten
                                                  tab_file_element.contentId = content_id.i,
                                                  tab_file_element.fileSize = finfo.size,
                                                  tab_file_element.modifiedDate = finfo.modified_time));
+        if (do_sync) { db.commit_transaction(); }
         return FileElementId{ .i = file_element_id };
     } else {
         // the location is known, we may have this file element already
@@ -410,4 +417,16 @@ BlimpDB::FileElementId BlimpDB::newFileElement(FileInfo const& finfo, FileConten
                                                  tab_file_element.modifiedDate = finfo.modified_time));
         return FileElementId{ .i = file_element_id };
     }
+}
+
+void BlimpDB::startExternalSync()
+{
+    m_pimpl->db.execute("PRAGMA synchronous = OFF");
+    m_pimpl->db.start_transaction();
+}
+
+void BlimpDB::commitExternalSync()
+{
+    m_pimpl->db.commit_transaction();
+    m_pimpl->db.execute("PRAGMA synchronous = FULL");
 }

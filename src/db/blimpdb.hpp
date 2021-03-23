@@ -65,9 +65,12 @@ public:
 
     SnapshotId addSnapshot(std::string const& name);
 
-    FileElementId newFileContent(FileInfo const& finfo, Hash const& hash);
+    FileElementId newFileContent(FileInfo const& finfo, Hash const& hash, bool do_sync = true);
 
-    FileElementId newFileElement(FileInfo const& finfo, FileContentId const& content_id);
+    FileElementId newFileElement(FileInfo const& finfo, FileContentId const& content_id, bool do_sync = true);
+
+    void startExternalSync();
+    void commitExternalSync();
 private:
     void createNewFileDatabase(std::string const& db_filename);
     void openExistingFileDatabase(std::string const& db_filename);
