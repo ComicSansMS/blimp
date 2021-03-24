@@ -7,4 +7,12 @@
 
 extern "C" STORAGE_FILESYSTEM_EXPORT BlimpPluginInfo blimp_plugin_api_info();
 
+void initialize_storage(char const* target_path);
+
+void new_file();
+
+void add_file_data();
+
+void finish_file();
+
 #endif

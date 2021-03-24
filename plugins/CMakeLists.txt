@@ -1,1 +1,2 @@
+add_subdirectory(compression_zlib)
 add_subdirectory(storage_filesystem)
