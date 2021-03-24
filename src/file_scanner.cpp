@@ -135,7 +135,7 @@ Hash FileScanner::calculateHash(FileInfo const& file_info)
         hash_calc.Update(reinterpret_cast<CryptoPP::byte const*>(buffer.data()), bytes_read);
         if (hash_update > (1 << 24)) {
             hash_update = 0;
-            emit processingUpdateFileProgress(file_info.size - static_cast<std::uintmax_t>(bytes_left));
+            emit processingUpdateFileProgress(file_info.size - static_cast<std::uint64_t>(bytes_left));
         }
     }
     GHULBUS_ASSERT(bytes_left == 0);
@@ -187,7 +187,7 @@ void FileScanner::processFile(FileInfo const& file_info)
 
         if (processing_update > (1 << 24)) {
             processing_update = 0;
-            emit processingUpdateFileProgress(file_info.size - static_cast<std::uintmax_t>(bytes_left));
+            emit processingUpdateFileProgress(file_info.size - static_cast<std::uint64_t>(bytes_left));
         }
     }
     GHULBUS_ASSERT(bytes_left == 0);
@@ -211,7 +211,7 @@ void FileScanner::startProcessing(std::vector<FileInfo> const& files, std::uniqu
 {
     GHULBUS_PRECONDITION(!m_scanThread.joinable());
     m_scanThread = std::thread([this, files, blimpdb = std::move(blimpdb)]() {
-        std::uintmax_t n = 0;
+        std::uint64_t n = 0;
         std::vector<Hash> hashes;
         hashes.reserve(files.size());
         m_timings.hashingStart = std::chrono::steady_clock::now();
@@ -239,8 +239,7 @@ void FileScanner::startProcessing(std::vector<FileInfo> const& files, std::uniqu
         emit checksumCalculationCompleted();
 
         for (auto const& f : files) {
-            
-            for (std::uintmax_t ss = 0; ss < f.size; ss += 1024 * 1024 * 50) {
+            for (std::uint64_t ss = 0; ss < f.size; ss += 1024 * 1024 * 50) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 
             }

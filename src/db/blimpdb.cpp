@@ -1,4 +1,8 @@
 #include <db/blimpdb.hpp>
+
+#include <file_hash.hpp>
+#include <storage_location.hpp>
+
 #include <db/table/table_layout.hpp>
 #include <db/table/blimp_properties.hpp>
 #include <db/table/file_contents.hpp>
@@ -8,7 +12,6 @@
 #include <db/table/snapshot.hpp>
 #include <db/table/snapshot_contents.hpp>
 #include <db/table/sqlite_master.hpp>
-#include <db/table/storage.hpp>
 #include <db/table/storage_contents.hpp>
 
 #include <exceptions.hpp>
@@ -20,11 +23,8 @@
 #include <sqlpp11/sqlpp11.h>
 #include <sqlpp11/sqlite3/sqlite3.h>
 
-#include <boost/variant.hpp>
-
 #include <cstdint>
 #include <limits>
-#include <ostream>
 
 namespace
 {
@@ -83,7 +83,6 @@ void createBlimpPropertiesTable(sqlpp::sqlite3::connection& db)
     db.execute(blimpdb::table_layout::file_element());
     db.execute(blimpdb::table_layout::snapshot());
     db.execute(blimpdb::table_layout::snapshot_contents());
-    db.execute(blimpdb::table_layout::storage());
     db.execute(blimpdb::table_layout::storage_contents());
 
     db.execute("CREATE UNIQUE INDEX idx_indexed_locations_paths ON indexed_locations (path);");
@@ -199,7 +198,7 @@ FileIndexDiff BlimpDB::compareFileIndex(std::vector<FileInfo> const& fresh_index
                 } else {
                     std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds> newest_time;
                     for(auto const& r : rows) {
-                        std::uintmax_t const fsize = r.fileSize;
+                        std::uint64_t const fsize = r.fileSize;
                         std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds> const ftime
                             = r.modifiedDate;
                         if(fsize == finfo.size && ftime == finfo.modified_time) {
@@ -290,7 +289,7 @@ std::vector<BlimpDB::FileIndexInfo> BlimpDB::updateFileIndex(std::vector<FileInf
             q_find_fel_prepped.params.locationId = location_id;
             for(auto const& fel_row : db(q_find_fel_prepped)) {
                 auto ts = fel_row.modifiedDate;
-                if(finfo.size != static_cast<std::uintmax_t>(fel_row.fileSize)) {
+                if(finfo.size != static_cast<std::uint64_t>(fel_row.fileSize)) {
                 }
             }
         }
@@ -421,6 +420,42 @@ BlimpDB::FileElementId BlimpDB::newFileElement(FileInfo const& finfo, FileConten
                                                  tab_file_element.modifiedDate = finfo.modified_time));
         return FileElementId{ .i = file_element_id };
     }
+}
+
+void BlimpDB::newStorageElement(FileContentId const& content_id,
+                                std::span<StorageLocation const> const& storage_locations,
+                                bool do_sync)
+{
+    auto& db = m_pimpl->db;
+    auto const tab_storage_contents = blimpdb::StorageContents{};
+
+    if (do_sync) { db.start_transaction(); }
+    for (auto const& l : storage_locations) {
+        db(insert_into(tab_storage_contents).set(tab_storage_contents.contentId = content_id.i,
+                                                 tab_storage_contents.location = l.location,
+                                                 tab_storage_contents.offset = l.offset,
+                                                 tab_storage_contents.size = l.size,
+                                                 tab_storage_contents.partNumber = l.part_number));
+    }
+    if (do_sync) { db.commit_transaction(); }
+}
+
+void BlimpDB::addSnapshotContents(SnapshotId const& snapshot_id,
+                                  std::span<FileElementId const> const& files,
+                                  bool do_sync)
+{
+    auto& db = m_pimpl->db;
+    auto const tab_snapshot_contents = blimpdb::SnapshotContents{};
+    auto q_insert_sco_param = insert_into(tab_snapshot_contents)
+                                .set(tab_snapshot_contents.snapshotId = snapshot_id.i,
+                                     tab_snapshot_contents.fileId     = parameter(tab_snapshot_contents.fileId));
+    auto q_insert_fco_prepped = db.prepare(q_insert_sco_param);
+    if (do_sync) { db.start_transaction(); }
+    for (auto const& f : files) {
+        q_insert_fco_prepped.params.fileId = f.i;
+        db(q_insert_fco_prepped);
+    }
+    if (do_sync) { db.commit_transaction(); }
 }
 
 void BlimpDB::startExternalSync()

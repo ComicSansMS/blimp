@@ -9,18 +9,18 @@ namespace blimpdb
 {
   namespace StorageContents_
   {
-    struct StorageId
+    struct ContentId
     {
       struct _alias_t
       {
-        static constexpr const char _literal[] =  "storage_id";
+        static constexpr const char _literal[] =  "content_id";
         using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
         template<typename T>
         struct _member_t
           {
-            T storageId;
-            T& operator()() { return storageId; }
-            const T& operator()() const { return storageId; }
+            T contentId;
+            T& operator()() { return contentId; }
+            const T& operator()() const { return contentId; }
           };
       };
       using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
@@ -73,18 +73,18 @@ namespace blimpdb
       };
       using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
     };
-    struct PartNo
+    struct PartNumber
     {
       struct _alias_t
       {
-        static constexpr const char _literal[] =  "part_no";
+        static constexpr const char _literal[] =  "part_number";
         using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
         template<typename T>
         struct _member_t
           {
-            T partNo;
-            T& operator()() { return partNo; }
-            const T& operator()() const { return partNo; }
+            T partNumber;
+            T& operator()() { return partNumber; }
+            const T& operator()() const { return partNumber; }
           };
       };
       using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
@@ -92,11 +92,11 @@ namespace blimpdb
   } // namespace StorageContents_
 
   struct StorageContents: sqlpp::table_t<StorageContents,
-               StorageContents_::StorageId,
+               StorageContents_::ContentId,
                StorageContents_::Location,
                StorageContents_::Offset,
                StorageContents_::Size,
-               StorageContents_::PartNo>
+               StorageContents_::PartNumber>
   {
     struct _alias_t
     {

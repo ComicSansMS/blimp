@@ -101,35 +101,22 @@ inline constexpr char const* snapshot_contents()
         );)";
 }
 
-/** Maps a file content to a storage id. To retrieve a file_element, first retrieve the corresponding storage_id
- *  for its contents from this table, then fetch all of the items with a matching storage_id from storage_contents.
- */
-inline constexpr char const* storage()
-{
-    return R"(
-        CREATE TABLE storage (
-            storage_id      INTEGER PRIMARY KEY,
-            content_id      INTEGER NOT NULL        REFERENCES file_contents(content_id)
-                                                    ON UPDATE RESTRICT ON DELETE RESTRICT
-        );)";
-}
-
 /** A single chunk of data in storage.
- * The contents of a file may be spread across multiple storage_contents elements with the same storage_id.
+ * The contents of a file may be spread across multiple storage_contents elements with the same content_id.
  * Each element is located in storage by a location string and an offset for that location. size is the number of
- * bytes for the respective content at that location, part_no is the 0-based index of the content_element among all
- * the elements with the same storage_id.
+ * bytes for the respective content at that location, part_number is the 0-based index of the content_element among
+ * all the elements with the same content_id.
  */
 inline constexpr char const* storage_contents()
 {
     return R"(
         CREATE TABLE storage_contents (
-            storage_id      INTEGER NOT NULL        REFERENCES storage(storage_id)
-                                                    ON UPDATE RESTRICT ON DELETE RESTRICT,
+            content_id      INTEGER NOT NULL    REFERENCES file_contents(content_id)
+                                                ON UPDATE RESTRICT ON DELETE RESTRICT,
             location        TEXT NOT NULL,
             offset          INTEGER,
             size            INTEGER,
-            part_no         INTEGER
+            part_number     INTEGER
         );)";
 }
 

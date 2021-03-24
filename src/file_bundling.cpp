@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <vector>
 
-std::vector<FileBundleInfo> bundleFiles(std::vector<FileInfo> const& files, std::uintmax_t min_unbundled_size)
+std::vector<FileBundleInfo> bundleFiles(std::vector<FileInfo> const& files, std::uint64_t min_unbundled_size)
 {
     std::vector<FileBundleInfo> ret;
     ret.reserve(files.size());
@@ -16,8 +16,8 @@ std::vector<FileBundleInfo> bundleFiles(std::vector<FileInfo> const& files, std:
     // if the total accumulated data is greater min_unbundled_size, no bundle will be smaller than min_unbundled_size.
     std::vector<std::size_t> bundle_elements;
     std::uint32_t bundle_id = 1u;       // running id of the current bundle assigned during list traversal
-    std::uintmax_t size_acc = 0;        // accumulated size of all elements in current bundle
-    std::uintmax_t cut_point = 0;       // byte offset into the current bundle at which we could split off a bundle
+    std::uint64_t size_acc = 0;         // accumulated size of all elements in current bundle
+    std::uint64_t cut_point = 0;        // byte offset into the current bundle at which we could split off a bundle
     std::size_t cut_element_index = 0;  // index of the element preceding cut_point
     for(int i = 0; i < files.size(); ++i) {
         auto const& f = files[i];

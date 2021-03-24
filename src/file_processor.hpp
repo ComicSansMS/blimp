@@ -14,9 +14,12 @@
 #include <ctime>
 #include <cstdint>
 #include <deque>
+#include <memory>
 #include <mutex>
 #include <thread>
 #include <vector>
+
+class ProcessingPipeline;
 
 class FileProcessor : public QObject
 {
@@ -37,6 +40,7 @@ private:
         std::chrono::steady_clock::time_point indexDbUpdateFinished;
     } m_timings;
     std::unique_ptr<BlimpDB> m_dbReturnChannel;
+    std::unique_ptr<ProcessingPipeline> m_processingPipeline;
 public:
     FileProcessor();
     ~FileProcessor();
@@ -48,10 +52,10 @@ public:
     [[nodiscard]] std::unique_ptr<BlimpDB> joinProcessing();
 
 signals:
-    void processingUpdateNewFile(std::uintmax_t current_file_indexed, std::uintmax_t current_file_size);
-    void processingUpdateHashProgress(std::uintmax_t current_file_bytes_processed);
-    void processingUpdateHashCompleted(std::uintmax_t current_file_indexed, std::uintmax_t current_file_size);
-    void processingUpdateFileProgress(std::uintmax_t current_file_bytes_processed);
+    void processingUpdateNewFile(std::uint64_t current_file_indexed, std::uint64_t current_file_size);
+    void processingUpdateHashProgress(std::uint64_t current_file_bytes_processed);
+    void processingUpdateHashCompleted(std::uint64_t current_file_indexed, std::uint64_t current_file_size);
+    void processingUpdateFileProgress(std::uint64_t current_file_bytes_processed);
     void processingCompleted();
     void processingCanceled();
 private:

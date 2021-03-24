@@ -59,16 +59,16 @@ public:
     FileIndexDiff const& getIndexDiff() const;
 
 signals:
-    void indexingCompleted(std::uintmax_t n_files_indexed);
-    void indexingUpdate(std::uintmax_t n_files_indexed);
+    void indexingCompleted(std::uint64_t n_files_indexed);
+    void indexingUpdate(std::uint64_t n_files_indexed);
 
     void indexDiffCompleted();
 
-    void processingUpdateNewFile(std::uintmax_t current_file_indexed, std::uintmax_t current_file_size);
-    void processingUpdateFileProgress(std::uintmax_t current_file_bytes_processed);
+    void processingUpdateNewFile(std::uint64_t current_file_indexed, std::uint64_t current_file_size);
+    void processingUpdateFileProgress(std::uint64_t current_file_bytes_processed);
     void processingCompleted();
 
-    void checksumCalculationUpdate(std::uintmax_t n_total_files_processed);
+    void checksumCalculationUpdate(std::uint64_t n_total_files_processed);
     void checksumCalculationCompleted();
 
 private:

@@ -25,18 +25,18 @@ namespace blimpdb
       };
       using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
     };
-    struct ContentId
+    struct FileId
     {
       struct _alias_t
       {
-        static constexpr const char _literal[] =  "content_id";
+        static constexpr const char _literal[] =  "file_id";
         using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
         template<typename T>
         struct _member_t
           {
-            T contentId;
-            T& operator()() { return contentId; }
-            const T& operator()() const { return contentId; }
+            T fileId;
+            T& operator()() { return fileId; }
+            const T& operator()() const { return fileId; }
           };
       };
       using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
@@ -45,7 +45,7 @@ namespace blimpdb
 
   struct SnapshotContents: sqlpp::table_t<SnapshotContents,
                SnapshotContents_::SnapshotId,
-               SnapshotContents_::ContentId>
+               SnapshotContents_::FileId>
   {
     struct _alias_t
     {

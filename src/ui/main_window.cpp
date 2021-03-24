@@ -230,7 +230,7 @@ struct MainWindow::Pimpl
 
     FileScanner fileScanner;
     FileProcessor fileProcessor;
-    std::uintmax_t numberOfFilesInIndex;
+    std::uint64_t numberOfFilesInIndex;
     std::unique_ptr<BlimpDB> blimpdb;
 
     Pimpl(MainWindow* parent)
@@ -453,12 +453,12 @@ void MainWindow::onCancelFileScan()
     }
 }
 
-void MainWindow::onFileScanIndexingUpdate(std::uintmax_t n_files)
+void MainWindow::onFileScanIndexingUpdate(std::uint64_t n_files)
 {
     m_pimpl->progressPage.labelProgress1low->setText(tr("Indexing %1...").arg(n_files));
 }
 
-void MainWindow::onFileScanIndexingCompleted(std::uintmax_t n_files)
+void MainWindow::onFileScanIndexingCompleted(std::uint64_t n_files)
 {
     m_pimpl->numberOfFilesInIndex = n_files;
     statusBar()->showMessage(tr("Indexing complete. Found %1 file%2.")
@@ -471,8 +471,8 @@ void MainWindow::onFileScanDiffCompleted()
 {
     m_pimpl->blimpdb = m_pimpl->fileScanner.joinScanning();
     auto const& index = m_pimpl->fileScanner.getIndexList();
-    std::uintmax_t const total_size =
-        std::accumulate(begin(index), end(index), uintmax_t{ 0 }, [](std::uintmax_t acc, FileInfo const& finfo)
+    std::uint64_t const total_size =
+        std::accumulate(begin(index), end(index), uint64_t{ 0 }, [](std::uint64_t acc, FileInfo const& finfo)
             {
                 return finfo.size + acc;
             });
@@ -539,7 +539,7 @@ void MainWindow::onProcessingCanceled()
     m_pimpl->blimpdb = m_pimpl->fileProcessor.joinProcessing();
 }
 
-void MainWindow::onProcessingUpdateNewFile(std::uintmax_t current_file_indexed, std::uintmax_t current_file_size)
+void MainWindow::onProcessingUpdateNewFile(std::uint64_t current_file_indexed, std::uint64_t current_file_size)
 {
     m_pimpl->progressPage.progress1->setValue(current_file_indexed);
     m_pimpl->progressPage.progress2->setMaximum(current_file_size >> 20);
@@ -548,19 +548,19 @@ void MainWindow::onProcessingUpdateNewFile(std::uintmax_t current_file_indexed, 
         .arg(QString::number(current_file_indexed), QString::number(m_pimpl->progressPage.progress1->maximum())));
 }
 
-void MainWindow::onProcessingUpdateHashProgress(std::uintmax_t current_file_bytes_processed)
+void MainWindow::onProcessingUpdateHashProgress(std::uint64_t current_file_bytes_processed)
 {
     m_pimpl->progressPage.progress2->setValue(current_file_bytes_processed >> 20);
 }
 
-void MainWindow::onProcessingUpdateHashCompleted(std::uintmax_t current_file_indexed, std::uintmax_t current_file_size)
+void MainWindow::onProcessingUpdateHashCompleted(std::uint64_t current_file_indexed, std::uint64_t current_file_size)
 {
     m_pimpl->progressPage.progress2->setValue(0);
     m_pimpl->progressPage.labelProgress1low->setText(tr("Processing %1 of %2...")
         .arg(QString::number(current_file_indexed), QString::number(m_pimpl->progressPage.progress1->maximum())));
 }
 
-void MainWindow::onProcessingUpdateFileProgress(std::uintmax_t current_file_bytes_processed)
+void MainWindow::onProcessingUpdateFileProgress(std::uint64_t current_file_bytes_processed)
 {
     m_pimpl->progressPage.progress2->setValue(current_file_bytes_processed >> 20);
 }
@@ -571,7 +571,7 @@ void MainWindow::onProcessingCompleted()
     m_pimpl->progressPage.labelHeader->setText("Done Processing.");
 }
 
-void MainWindow::onFileScanChecksumUpdate(std::uintmax_t n_files)
+void MainWindow::onFileScanChecksumUpdate(std::uint64_t n_files)
 {
     m_pimpl->statusBar.progressLabel->setText(tr("Scanning %1/%2")
         .arg(QString::number(n_files), QString::number(m_pimpl->numberOfFilesInIndex)));

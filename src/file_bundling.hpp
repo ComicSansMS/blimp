@@ -20,6 +20,6 @@ struct FileBundleInfo {
  *         in files of the same index. Bundle ids are strictly increasing. After a bundle id of N in the vector, all
  *         following ids will be >=N or 0.
  */
-std::vector<FileBundleInfo> bundleFiles(std::vector<FileInfo> const& files, std::uintmax_t min_unbundled_size);
+std::vector<FileBundleInfo> bundleFiles(std::vector<FileInfo> const& files, std::uint64_t min_unbundled_size);
 
 #endif

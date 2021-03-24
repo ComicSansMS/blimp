@@ -1,7 +1,6 @@
 #ifndef BLIMP_INCLUDE_GUARD_DB_BLIMPDB_HPP
 #define BLIMP_INCLUDE_GUARD_DB_BLIMPDB_HPP
 
-#include <file_hash.hpp>
 #include <file_info.hpp>
 
 #include <date/date.h>
@@ -9,8 +8,12 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <span>
 #include <tuple>
 #include <vector>
+
+struct Hash;
+struct StorageLocation;
 
 class BlimpDB
 {
@@ -75,6 +78,14 @@ public:
         newFileContent(FileInfo const& finfo, Hash const& hash, bool do_sync = true);
 
     FileElementId newFileElement(FileInfo const& finfo, FileContentId const& content_id, bool do_sync = true);
+
+    void newStorageElement(FileContentId const& content_id,
+                           std::span<StorageLocation const> const& storage_locations,
+                           bool do_sync = true);
+
+    void addSnapshotContents(SnapshotId const& snapshot_id,
+                             std::span<FileElementId const> const& files,
+                             bool do_sync = true);
 
     void startExternalSync();
     void commitExternalSync();

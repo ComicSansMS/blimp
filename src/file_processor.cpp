@@ -2,6 +2,8 @@
 
 #include <file_hash.hpp>
 #include <file_io.hpp>
+#include <processing_pipeline.hpp>
+#include <storage_location.hpp>
 #include <worker_pool.hpp>
 
 #include <gbBase/Assert.hpp>
@@ -13,7 +15,7 @@
 #include <vector>
 
 FileProcessor::FileProcessor()
-    :m_cancelProcessing(false)
+    :m_cancelProcessing(false), m_processingPipeline(std::make_unique<ProcessingPipeline>())
 {}
 
 FileProcessor::~FileProcessor()
@@ -62,14 +64,19 @@ void FileProcessor::startProcessing(BlimpDB::SnapshotId snapshot_id, std::vector
                 auto const [file_element, content_id, insertion_status] = blimpdb.newFileContent(f, hash, false);
                 snapshot_contents.push_back(file_element);
                 if (insertion_status == BlimpDB::FileContentInsertion::CreatedNew) {
+                    auto transaction = m_processingPipeline->startNewContentTransaction(hash);
                     fio.startReading(f.path);
                     bytes_read = 0;
                     while (fio.hasMoreChunks()) {
                         FileChunk const& c = fio.getNextChunk();
+                        transaction.addFileChunk(c);
                         bytes_read += c.getUsedSize();
                         emit processingUpdateFileProgress(bytes_read);
                         if (m_cancelProcessing.load()) { emit processingCanceled(); return; }
                     }
+                    std::vector<StorageLocation> const storage_locations =
+                        m_processingPipeline->commitTransaction(std::move(transaction));
+                    blimpdb.newStorageElement(content_id, storage_locations, false);
                 }
                 if (m_cancelProcessing.load()) { emit processingCanceled(); return; }
             } catch (std::exception& e) {
@@ -77,6 +84,8 @@ void FileProcessor::startProcessing(BlimpDB::SnapshotId snapshot_id, std::vector
             }
             ++file_index;
         }
+        GHULBUS_LOG(Debug, "Adding " << snapshot_contents.size() << " elements as snapshot contents");
+        blimpdb.addSnapshotContents(snapshot_id, snapshot_contents, false);
         blimpdb.commitExternalSync();
         emit processingCompleted();
     });

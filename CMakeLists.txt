@@ -64,6 +64,7 @@ set(BLIMP_SOURCE_FILES
     ${BLIMP_SOURCE_DIRECTORY}/file_io.cpp
     ${BLIMP_SOURCE_DIRECTORY}/storage_plugin.cpp
     ${BLIMP_SOURCE_DIRECTORY}/plugin_common.cpp
+    ${BLIMP_SOURCE_DIRECTORY}/processing_pipeline.cpp
     ${BLIMP_SOURCE_DIRECTORY}/worker_pool.cpp
     ${BLIMP_SOURCE_DIRECTORY}/db/blimpdb.cpp
 )
@@ -76,9 +77,11 @@ set(BLIMP_HEADER_FILES
     ${BLIMP_SOURCE_DIRECTORY}/file_info.hpp
     ${BLIMP_SOURCE_DIRECTORY}/file_io.hpp
     ${BLIMP_SOURCE_DIRECTORY}/plugin_common.hpp
+    ${BLIMP_SOURCE_DIRECTORY}/processing_pipeline.hpp
     ${BLIMP_SOURCE_DIRECTORY}/storage.hpp
     ${BLIMP_SOURCE_DIRECTORY}/storage_aws_glacier.hpp
     ${BLIMP_SOURCE_DIRECTORY}/storage_filesystem.hpp
+    ${BLIMP_SOURCE_DIRECTORY}/storage_location.hpp
     ${BLIMP_SOURCE_DIRECTORY}/storage_plugin.hpp
     ${BLIMP_SOURCE_DIRECTORY}/version.hpp
     ${BLIMP_SOURCE_DIRECTORY}/worker_pool.hpp
@@ -95,7 +98,6 @@ set(BLIMP_TABLE_HEADER_FILES
     ${BLIMP_SOURCE_DIRECTORY}/db/table/snapshot.hpp
     ${BLIMP_SOURCE_DIRECTORY}/db/table/snapshot_contents.hpp
     ${BLIMP_SOURCE_DIRECTORY}/db/table/sqlite_master.hpp
-    ${BLIMP_SOURCE_DIRECTORY}/db/table/storage.hpp
     ${BLIMP_SOURCE_DIRECTORY}/db/table/storage_contents.hpp
     ${BLIMP_SOURCE_DIRECTORY}/db/table/user_selection.hpp
 )
