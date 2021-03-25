@@ -29,20 +29,11 @@ std::string outPath()
 }
 
 ProcessingPipeline::ProcessingPipeline()
+    :m_compression("compression_zlib")
 {
     if (!boost::filesystem::is_directory(g_basePath)) {
         boost::filesystem::create_directory(g_basePath);
     }
-
-    m_compression_dll = load_plugin_by_name("compression_zlib");
-    m_compression_plugin_initialize = m_compression_dll.get<BlimpPluginCompression* ()>("blimp_plugin_compression_initialize");
-    m_compression_plugin_shutdown = m_compression_dll.get<void(BlimpPluginCompression*)>("blimp_plugin_compression_shutdown");
-    m_compression = m_compression_plugin_initialize();
-}
-
-ProcessingPipeline::~ProcessingPipeline()
-{
-    m_compression_plugin_shutdown(m_compression);
 }
 
 ProcessingPipeline::TransactionGuard ProcessingPipeline::startNewContentTransaction(Hash const& data_hash)
@@ -63,10 +54,10 @@ ProcessingPipeline::TransactionGuard ProcessingPipeline::startNewContentTransact
 void ProcessingPipeline::addFileChunk(FileChunk const& chunk)
 {
     BlimpFileChunk blimp_chunk{ .data = chunk.getData(), .size = static_cast<int64_t>(chunk.getUsedSize()) };
-    m_compression->compress_file_chunk(m_compression->state, blimp_chunk);
+    m_compression.compressFileChunk(blimp_chunk);
 
     for (;;) {
-        BlimpFileChunk const c = m_compression->get_compressed_chunk(m_compression->state);
+        BlimpFileChunk const c = m_compression.getCompressedChunk();
         if (!c.data) { break; }
         m_fout.write(c.data, c.size);
     }
@@ -88,9 +79,9 @@ void ProcessingPipeline::addFileChunk(FileChunk const& chunk)
 std::vector<StorageLocation> ProcessingPipeline::commitTransaction(TransactionGuard&& tg)
 {
     BlimpFileChunk blimp_chunk{ .data = nullptr, .size = 0 };
-    m_compression->compress_file_chunk(m_compression->state, blimp_chunk);
+    m_compression.compressFileChunk(blimp_chunk);
     for (;;) {
-        BlimpFileChunk const c = m_compression->get_compressed_chunk(m_compression->state);
+        BlimpFileChunk const c = m_compression.getCompressedChunk();
         if (!c.data) { break; }
         m_fout.write(c.data, c.size);
     }

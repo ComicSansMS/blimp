@@ -3,9 +3,7 @@
 
 #include <gbBase/Assert.hpp>
 
-#include <blimp_plugin_sdk.h>
-
-#include <boost/dll/shared_library.hpp>
+#include <plugin_compression.hpp>
 
 #include <fstream>
 #include <vector>
@@ -65,14 +63,9 @@ private:
     std::int64_t m_startOffset;
     std::int64_t m_partCounter;
 
-    boost::dll::shared_library m_compression_dll;
-    blimp_plugin_compression_initialize_type m_compression_plugin_initialize;
-    blimp_plugin_compression_shutdown_type m_compression_plugin_shutdown;
-    BlimpPluginCompression* m_compression;
+    PluginCompression m_compression;
 public:
     ProcessingPipeline();
-
-    ~ProcessingPipeline();
 
     ProcessingPipeline(ProcessingPipeline const&) = delete;
     ProcessingPipeline& operator=(ProcessingPipeline const&) = delete;

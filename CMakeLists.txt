@@ -64,6 +64,7 @@ set(BLIMP_SOURCE_FILES
     ${BLIMP_SOURCE_DIRECTORY}/file_io.cpp
     ${BLIMP_SOURCE_DIRECTORY}/storage_plugin.cpp
     ${BLIMP_SOURCE_DIRECTORY}/plugin_common.cpp
+    ${BLIMP_SOURCE_DIRECTORY}/plugin_compression.cpp
     ${BLIMP_SOURCE_DIRECTORY}/processing_pipeline.cpp
     ${BLIMP_SOURCE_DIRECTORY}/worker_pool.cpp
     ${BLIMP_SOURCE_DIRECTORY}/db/blimpdb.cpp
@@ -77,6 +78,7 @@ set(BLIMP_HEADER_FILES
     ${BLIMP_SOURCE_DIRECTORY}/file_info.hpp
     ${BLIMP_SOURCE_DIRECTORY}/file_io.hpp
     ${BLIMP_SOURCE_DIRECTORY}/plugin_common.hpp
+    ${BLIMP_SOURCE_DIRECTORY}/plugin_compression.hpp
     ${BLIMP_SOURCE_DIRECTORY}/processing_pipeline.hpp
     ${BLIMP_SOURCE_DIRECTORY}/storage.hpp
     ${BLIMP_SOURCE_DIRECTORY}/storage_aws_glacier.hpp
@@ -166,6 +168,9 @@ set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT b
 
 add_executable(aws_tester src/aws_prototype.cpp)
 target_link_libraries(aws_tester PUBLIC aws-cpp-sdk-core aws-cpp-sdk-glacier cryptopp-static)
+
+add_executable(crypto_demo src/crypto/crypto_demo.cpp)
+target_link_libraries(crypto_demo PUBLIC cryptopp-static)
 
 if(WIN32)
     getQt5Dlls(Qt5::Widgets qt_DLLS)
