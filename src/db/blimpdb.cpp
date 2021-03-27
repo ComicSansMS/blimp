@@ -152,10 +152,12 @@ void BlimpDB::setUserSelection(std::vector<std::string> const& selected_files)
                         " entr" << ((selected_files.size() == 1) ? "y" : "ies") << ".");
     auto const tab = blimpdb::UserSelection{};
     auto& db = m_pimpl->db;
+    db.start_transaction();
     db(remove_from(tab).unconditionally());
     for(auto const& f : selected_files) {
         db(insert_into(tab).set(tab.path = f));
     }
+    db.commit_transaction();
 }
 
 std::vector<std::string> BlimpDB::getUserSelection()
