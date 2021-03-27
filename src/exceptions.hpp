@@ -19,5 +19,6 @@ namespace Records
 namespace Exceptions
 {
 struct DatabaseError : public Ghulbus::Exceptions::IOError {};
+struct PluginError : public Ghulbus::Exceptions::ProtocolViolation {};
 }
 #endif

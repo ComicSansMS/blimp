@@ -10,12 +10,15 @@
 class PluginCompression {
 private:
     boost::dll::shared_library m_compression_dll;
+    blimp_plugin_api_info_type m_compression_plugin_api_info;
     blimp_plugin_compression_initialize_type m_compression_plugin_initialize;
     blimp_plugin_compression_shutdown_type m_compression_plugin_shutdown;
-    BlimpPluginCompression* m_compression;
+    BlimpPluginCompression m_compression;
     std::unique_ptr<BlimpPluginCompression, blimp_plugin_compression_shutdown_type> m_compression_guard;
 public:
     PluginCompression(std::string const& plugin_name);
+
+    BlimpPluginInfo pluginInfo() const;
 
     void compressFileChunk(BlimpFileChunk chunk);
     BlimpFileChunk getCompressedChunk();
