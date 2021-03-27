@@ -2,25 +2,35 @@
 
 #include <exceptions.hpp>
 #include <plugin_common.hpp>
+#include <plugin_key_value_store.hpp>
 
-PluginCompression::PluginCompression(std::string const& plugin_name)
+struct BlimpKeyValueStoreState {
+
+};
+
+PluginCompression::PluginCompression(BlimpDB& blimpdb, std::string const& plugin_name)
     :m_compression_guard(nullptr, nullptr)
 {
     m_compression_dll = load_plugin_by_name(plugin_name);
     m_compression_plugin_api_info =
         m_compression_dll.get<BlimpPluginInfo()>("blimp_plugin_api_info");
+    auto const api_info = m_compression_plugin_api_info();
     m_compression_plugin_initialize =
-        m_compression_dll.get<BlimpPluginResult(BlimpPluginCompression*)>("blimp_plugin_compression_initialize");
+        m_compression_dll.get<BlimpPluginResult(BlimpKeyValueStore, BlimpPluginCompression*)>("blimp_plugin_compression_initialize");
     m_compression_plugin_shutdown =
         m_compression_dll.get<void(BlimpPluginCompression*)>("blimp_plugin_compression_shutdown");
     m_compression.abi = BLIMP_PLUGIN_ABI_1_0_0;
-    if (m_compression_plugin_initialize(&m_compression) != BLIMP_PLUGIN_RESULT_OK) {
+    m_kvStore = std::make_unique<PluginKeyValueStore>(blimpdb, api_info);
+    BlimpPluginResult const res = m_compression_plugin_initialize(m_kvStore->getPluginKeyValueStore(), &m_compression);
+    if (res != BLIMP_PLUGIN_RESULT_OK) {
         GHULBUS_THROW(Exceptions::PluginError{}, "Unable to initialize compression plugin");
     }
     m_compression_guard = 
         std::unique_ptr<BlimpPluginCompression, blimp_plugin_compression_shutdown_type>(&m_compression,
                                                                                         m_compression_plugin_shutdown);
 }
+
+PluginCompression::~PluginCompression() = default;
 
 BlimpPluginInfo PluginCompression::pluginInfo() const
 {

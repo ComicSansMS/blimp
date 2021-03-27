@@ -18,6 +18,17 @@ inline constexpr char const* blimp_properties()
         );)";
 }
 
+/** The key/value store used by plugins.
+ */
+inline constexpr char const* plugin_kv_store()
+{
+    return R"(
+        CREATE TABLE plugin_kv_store (
+            store_key   TEXT      PRIMARY KEY,
+            value BLOB
+        );)";
+}
+
 /** A list of paths selected by the user on the UI.
  * The user_selection is only the minimal information that is required for serializing the UI state.
  * It stores for each branch in the tree only the highest item that is 'Checked'.

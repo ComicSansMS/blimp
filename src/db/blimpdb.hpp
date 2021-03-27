@@ -3,6 +3,8 @@
 
 #include <file_info.hpp>
 
+#include <blimp_plugin_sdk.h>
+
 #include <date/date.h>
 
 #include <memory>
@@ -52,6 +54,11 @@ public:
         CreatedNew,
         ReferencedExisting
     };
+
+    struct PluginStoreValue {
+        std::vector<char> data;
+        BlimpKeyValueStoreValue value;
+    };
 private:
     struct Pimpl;
     std::unique_ptr<Pimpl> m_pimpl;
@@ -86,6 +93,9 @@ public:
     void addSnapshotContents(SnapshotId const& snapshot_id,
                              std::span<FileElementId const> const& files,
                              bool do_sync = true);
+
+    void pluginStoreValue(BlimpPluginInfo const& plugin, char const* key, BlimpKeyValueStoreValue value);
+    PluginStoreValue pluginRetrieveValue(BlimpPluginInfo const& plugin, char const* key);
 
     void startExternalSync();
     void commitExternalSync();

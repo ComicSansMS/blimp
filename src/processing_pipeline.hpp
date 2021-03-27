@@ -8,6 +8,7 @@
 #include <fstream>
 #include <vector>
 
+class BlimpDB;
 class FileChunk;
 struct Hash;
 struct StorageLocation;
@@ -65,7 +66,7 @@ private:
 
     PluginCompression m_compression;
 public:
-    ProcessingPipeline();
+    explicit ProcessingPipeline(BlimpDB& blimpdb);
 
     ProcessingPipeline(ProcessingPipeline const&) = delete;
     ProcessingPipeline& operator=(ProcessingPipeline const&) = delete;

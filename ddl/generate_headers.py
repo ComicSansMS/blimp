@@ -7,10 +7,10 @@ ddl_files = [
     'file_contents',
     'file_element',
     'indexed_locations',
+    'plugin_kv_store',
     'snapshot',
     'snapshot_contents',
     'sqlite_master',
-    'storage',
     'storage_contents',
     'user_selection',
 ];

@@ -7,6 +7,9 @@
 
 #include <memory>
 
+class BlimpDB;
+class PluginKeyValueStore;
+
 class PluginCompression {
 private:
     boost::dll::shared_library m_compression_dll;
@@ -15,8 +18,10 @@ private:
     blimp_plugin_compression_shutdown_type m_compression_plugin_shutdown;
     BlimpPluginCompression m_compression;
     std::unique_ptr<BlimpPluginCompression, blimp_plugin_compression_shutdown_type> m_compression_guard;
+    std::unique_ptr<PluginKeyValueStore> m_kvStore;
 public:
-    PluginCompression(std::string const& plugin_name);
+    PluginCompression(BlimpDB& blimpdb, std::string const& plugin_name);
+    ~PluginCompression();
 
     BlimpPluginInfo pluginInfo() const;
 

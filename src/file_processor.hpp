@@ -58,8 +58,6 @@ signals:
     void processingUpdateFileProgress(std::uint64_t current_file_bytes_processed);
     void processingCompleted();
     void processingCanceled();
-private:
-    Hash calculateHash(FileInfo const& file_info);
 };
 
 #endif

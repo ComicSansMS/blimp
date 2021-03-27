@@ -15,7 +15,7 @@
 #include <vector>
 
 FileProcessor::FileProcessor()
-    :m_cancelProcessing(false), m_processingPipeline(std::make_unique<ProcessingPipeline>())
+    :m_cancelProcessing(false)
 {}
 
 FileProcessor::~FileProcessor()
@@ -29,6 +29,7 @@ void FileProcessor::startProcessing(BlimpDB::SnapshotId snapshot_id, std::vector
 {
     GHULBUS_PRECONDITION(!m_dbReturnChannel);
     m_dbReturnChannel = std::move(blimpdb);
+    m_processingPipeline = std::make_unique<ProcessingPipeline>(*m_dbReturnChannel);
     m_filesToProcess = std::move(files);
     m_cancelProcessing.store(false);
     m_processingThread = std::thread([this, snapshot_id, &blimpdb = *m_dbReturnChannel]() {

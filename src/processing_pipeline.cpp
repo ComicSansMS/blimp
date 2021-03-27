@@ -28,8 +28,8 @@ std::string outPath()
     return p.generic_string();
 }
 
-ProcessingPipeline::ProcessingPipeline()
-    :m_compression("compression_zlib")
+ProcessingPipeline::ProcessingPipeline(BlimpDB& blimpdb)
+    :m_compression(blimpdb, "compression_zlib")
 {
     if (!boost::filesystem::is_directory(g_basePath)) {
         boost::filesystem::create_directory(g_basePath);

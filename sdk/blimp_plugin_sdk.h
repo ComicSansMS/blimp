@@ -24,17 +24,17 @@ typedef struct BlimpPluginVersion_Tag {
     int32_t patch;
 } BlimpPluginVersion;
 
-typedef struct BlimpGUID_Tag {
+typedef struct BlimpUUID_Tag {
     uint32_t d1;
     uint16_t d2;
     uint16_t d3;
     uint8_t d4[8];
-} BlimpGUID;
+} BlimpUUID;
 
 typedef struct BlimpPluginInfo_Tag {
     BlimpPluginType type;
     BlimpPluginVersion version;
-    BlimpGUID guid;
+    BlimpUUID uuid;
     char const* name;
     char const* description;
 } BlimpPluginInfo;
@@ -66,18 +66,33 @@ typedef struct BlimpFileChunk_Tag {
     int64_t size;
 } BlimpFileChunk;
 
+typedef struct BlimpKeyValueStoreValue_Tag {
+    int64_t size;
+    char const* data;
+} BlimpKeyValueStoreValue;
+
+struct BlimpKeyValueStoreState;
+typedef struct BlimpKeyValueStoreState* BlimpKeyValueStoreStateHandle;
+
+typedef struct BlimpKeyValueStore_Tag {
+    BlimpKeyValueStoreStateHandle state;
+    void (*store)(BlimpKeyValueStoreStateHandle state, char const* key, BlimpKeyValueStoreValue value);
+    BlimpKeyValueStoreValue (*retrieve)(BlimpKeyValueStoreStateHandle state, char const* key);
+} BlimpKeyValueStore;
+
 struct BlimpPluginCompressionState;
+typedef struct BlimpPluginCompressionState* BlimpPluginCompressionStateHandle;
 
 typedef struct BlimpPluginCompression_Tag {
     BlimpPluginABI abi;
-    struct BlimpPluginCompressionState* state;
-    char const* (*get_last_error)(BlimpPluginCompressionState* state);
-    BlimpPluginResult (*compress_file_chunk)(BlimpPluginCompressionState* state, BlimpFileChunk chunk);
-    BlimpFileChunk (*get_compressed_chunk)(BlimpPluginCompressionState* state);
+    BlimpPluginCompressionStateHandle state;
+    char const* (*get_last_error)(BlimpPluginCompressionStateHandle state);
+    BlimpPluginResult (*compress_file_chunk)(BlimpPluginCompressionStateHandle state, BlimpFileChunk chunk);
+    BlimpFileChunk (*get_compressed_chunk)(BlimpPluginCompressionStateHandle state);
 } BlimpPluginCompression;
 
 typedef char const* (*blimp_plugin_compression_get_last_error_type)(BlimpPluginCompression* plugin);
-typedef BlimpPluginResult (*blimp_plugin_compression_initialize_type)(BlimpPluginCompression*);
+typedef BlimpPluginResult (*blimp_plugin_compression_initialize_type)(BlimpKeyValueStore, BlimpPluginCompression*);
 typedef void (*blimp_plugin_compression_shutdown_type)(BlimpPluginCompression* plugin);
 
 #ifdef __cplusplus

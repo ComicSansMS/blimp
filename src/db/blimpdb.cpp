@@ -2,12 +2,14 @@
 
 #include <file_hash.hpp>
 #include <storage_location.hpp>
+#include <uuid.hpp>
 
 #include <db/table/table_layout.hpp>
 #include <db/table/blimp_properties.hpp>
 #include <db/table/file_contents.hpp>
 #include <db/table/file_element.hpp>
 #include <db/table/indexed_locations.hpp>
+#include <db/table/plugin_kv_store.hpp>
 #include <db/table/user_selection.hpp>
 #include <db/table/snapshot.hpp>
 #include <db/table/snapshot_contents.hpp>
@@ -77,6 +79,7 @@ void createBlimpPropertiesTable(sqlpp::sqlite3::connection& db)
 {
     auto const prop_tab = blimpdb::BlimpProperties{};
     db.execute(blimpdb::table_layout::blimp_properties());
+    db.execute(blimpdb::table_layout::plugin_kv_store());
     db.execute(blimpdb::table_layout::user_selection());
     db.execute(blimpdb::table_layout::indexed_locations());
     db.execute(blimpdb::table_layout::file_contents());
@@ -456,6 +459,44 @@ void BlimpDB::addSnapshotContents(SnapshotId const& snapshot_id,
         db(q_insert_fco_prepped);
     }
     if (do_sync) { db.commit_transaction(); }
+}
+
+void BlimpDB::pluginStoreValue(BlimpPluginInfo const& plugin, char const* key, BlimpKeyValueStoreValue value)
+{
+    auto& db = m_pimpl->db;
+    auto const tab_plugin_kv_store = blimpdb::PluginKvStore{};
+
+    std::string const store_key = to_string(plugin.uuid) + "//" + key;
+    std::vector<std::uint8_t> const data{ value.data, value.data + value.size };
+    if (db(select(tab_plugin_kv_store.value).from(tab_plugin_kv_store)
+                                            .where(tab_plugin_kv_store.storeKey == store_key)).empty())
+    {
+        db(insert_into(tab_plugin_kv_store).set(tab_plugin_kv_store.storeKey = store_key,
+                                                tab_plugin_kv_store.value = data));
+    } else {
+        db(update(tab_plugin_kv_store).set(tab_plugin_kv_store.value = data)
+                                      .where(tab_plugin_kv_store.storeKey == store_key));
+    }
+}
+
+BlimpDB::PluginStoreValue BlimpDB::pluginRetrieveValue(BlimpPluginInfo const& plugin, char const* key)
+{
+    auto& db = m_pimpl->db;
+    auto const tab_plugin_kv_store = blimpdb::PluginKvStore{};
+
+    std::string const store_key = to_string(plugin.uuid) + "//" + key;
+    auto const res =
+        db(select(tab_plugin_kv_store.value).from(tab_plugin_kv_store)
+                                            .where(tab_plugin_kv_store.storeKey == store_key));
+    if (res.empty()) {
+        return PluginStoreValue{ .data = {}, .value = { .size = -1, .data = nullptr } };
+    }
+    auto const& value = res.front().value;
+    PluginStoreValue ret;
+    ret.data.assign(value.blob, value.blob + value.len);
+    ret.value.size = ret.data.size();
+    ret.value.data = ret.data.data();
+    return ret;
 }
 
 void BlimpDB::startExternalSync()

@@ -13,6 +13,23 @@ struct ErrorStrings {
     static constexpr char const compression_error[] = "Unexpected error during compression";
 };
 
+class KeyValueStore {
+private:
+    BlimpKeyValueStore m_kv;
+public:
+    explicit KeyValueStore(BlimpKeyValueStore const& kv)
+        :m_kv(kv)
+    {}
+
+    void store(char const* key, BlimpKeyValueStoreValue v) {
+        m_kv.store(m_kv.state, key, v);
+    }
+
+    BlimpKeyValueStoreValue retrieve(char const* key) {
+        return m_kv.retrieve(m_kv.state, key);
+    }
+};
+
 struct Buffer {
     std::vector<Bytef> b;
     static constexpr size_t buffer_size = (1 << 20);
@@ -50,8 +67,9 @@ struct BlimpPluginCompressionState {
     Buffer public_buffer;
     std::vector<Buffer> free_buffers;
     char const* error_string;
+    KeyValueStore m_kvStore;
 
-    BlimpPluginCompressionState();
+    BlimpPluginCompressionState(BlimpKeyValueStore const& kv_store);
     ~BlimpPluginCompressionState();
 
     BlimpPluginCompressionState(BlimpPluginCompressionState const&) = delete;
@@ -74,7 +92,7 @@ BlimpPluginInfo blimp_plugin_api_info()
             .minor = 0,
             .patch = 0
         },
-        .guid = {
+        .uuid = {
             // {8D475098-7DFF-4181-B266-D185542E402C}
             0x8d475098, 0x7dff, 0x4181, { 0xb2, 0x66, 0xd1, 0x85, 0x54, 0x2e, 0x40, 0x2c }
         },
@@ -83,28 +101,28 @@ BlimpPluginInfo blimp_plugin_api_info()
     };
 }
 
-char const* blimp_plugin_get_last_error(BlimpPluginCompressionState* state)
+char const* blimp_plugin_get_last_error(BlimpPluginCompressionStateHandle state)
 {
     return state->get_last_error();
 }
 
-BlimpPluginResult blimp_plugin_compress_file_chunk(BlimpPluginCompressionState* state, BlimpFileChunk chunk)
+BlimpPluginResult blimp_plugin_compress_file_chunk(BlimpPluginCompressionStateHandle state, BlimpFileChunk chunk)
 {
     return state->compress_file_chunk(chunk);
 }
 
-BlimpFileChunk blimp_plugin_get_compressed_chunk(BlimpPluginCompressionState* state)
+BlimpFileChunk blimp_plugin_get_compressed_chunk(BlimpPluginCompressionStateHandle state)
 {
     return state->get_compressed_chunk();
 }
 
-BlimpPluginResult blimp_plugin_compression_initialize(BlimpPluginCompression* plugin)
+BlimpPluginResult blimp_plugin_compression_initialize(BlimpKeyValueStore kv_store, BlimpPluginCompression* plugin)
 {
     if (plugin->abi != BLIMP_PLUGIN_ABI_1_0_0) {
         return BLIMP_PLUGIN_INVALID_ARGUMENT;
     }
     try {
-        plugin->state = new BlimpPluginCompressionState;
+        plugin->state = new BlimpPluginCompressionState(kv_store);
     } catch (std::exception&) {
         plugin->state = nullptr;
         return BLIMP_PLUGIN_RESULT_FAILED;
@@ -120,7 +138,8 @@ void blimp_plugin_compression_shutdown(BlimpPluginCompression* plugin)
     delete plugin->state;
 }
 
-BlimpPluginCompressionState::BlimpPluginCompressionState()
+BlimpPluginCompressionState::BlimpPluginCompressionState(BlimpKeyValueStore const& kv_store)
+    :m_kvStore(kv_store)
 {
     error_string = ErrorStrings::okay;
     zs.opaque = nullptr;
