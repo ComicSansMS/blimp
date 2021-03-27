@@ -4,10 +4,6 @@
 #include <plugin_common.hpp>
 #include <plugin_key_value_store.hpp>
 
-struct BlimpKeyValueStoreState {
-
-};
-
 PluginCompression::PluginCompression(BlimpDB& blimpdb, std::string const& plugin_name)
     :m_compression_guard(nullptr, nullptr)
 {
@@ -23,7 +19,10 @@ PluginCompression::PluginCompression(BlimpDB& blimpdb, std::string const& plugin
     m_kvStore = std::make_unique<PluginKeyValueStore>(blimpdb, api_info);
     BlimpPluginResult const res = m_compression_plugin_initialize(m_kvStore->getPluginKeyValueStore(), &m_compression);
     if (res != BLIMP_PLUGIN_RESULT_OK) {
-        GHULBUS_THROW(Exceptions::PluginError{}, "Unable to initialize compression plugin");
+        GHULBUS_THROW(Exceptions::PluginError{}
+                      << Exception_Info::Records::plugin_name(plugin_name)
+                      << Ghulbus::Exception_Info::filename(m_compression_dll.location().string()),
+                      "Unable to initialize compression plugin");
     }
     m_compression_guard = 
         std::unique_ptr<BlimpPluginCompression, blimp_plugin_compression_shutdown_type>(&m_compression,

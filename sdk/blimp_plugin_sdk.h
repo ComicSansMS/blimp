@@ -15,7 +15,7 @@ typedef enum BlimpPluginABI_Tag {
 typedef enum BlimpPluginType_Tag {
     BLIMP_PLUGIN_TYPE_STORAGE,
     BLIMP_PLUGIN_TYPE_COMPRESSION,
-    BLIMP_PLUGIN_TYPE_PROCESSING,
+    BLIMP_PLUGIN_TYPE_ENCRYPTION,
 } BlimpPluginType;
 
 typedef struct BlimpPluginVersion_Tag {
@@ -91,9 +91,24 @@ typedef struct BlimpPluginCompression_Tag {
     BlimpFileChunk (*get_compressed_chunk)(BlimpPluginCompressionStateHandle state);
 } BlimpPluginCompression;
 
-typedef char const* (*blimp_plugin_compression_get_last_error_type)(BlimpPluginCompression* plugin);
 typedef BlimpPluginResult (*blimp_plugin_compression_initialize_type)(BlimpKeyValueStore, BlimpPluginCompression*);
 typedef void (*blimp_plugin_compression_shutdown_type)(BlimpPluginCompression* plugin);
+
+
+struct BlimpPluginEncryptionState;
+typedef struct BlimpPluginEncryptionState* BlimpPluginEncryptionStateHandle;
+
+typedef struct BlimpPluginEncryption_Tag {
+    BlimpPluginABI abi;
+    BlimpPluginEncryptionStateHandle state;
+    char const* (*get_last_error)(BlimpPluginEncryptionStateHandle state);
+    BlimpPluginResult (*new_storage_container)(int64_t container_id);
+    BlimpPluginResult (*encrypt_file_chunk)(BlimpPluginEncryptionStateHandle state, BlimpFileChunk chunk);
+    BlimpFileChunk (*get_encrypted_chunk)(BlimpPluginEncryptionStateHandle state);
+} BlimpPluginEncryption;
+
+typedef BlimpPluginResult (*blimp_plugin_encryption_initialize_type)(BlimpKeyValueStore, BlimpPluginEncryption*);
+typedef void (*blimp_plugin_encryption_shutdown_type)(BlimpPluginEncryption* plugin);
 
 #ifdef __cplusplus
 }

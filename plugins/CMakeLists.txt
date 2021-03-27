@@ -1,2 +1,3 @@
 add_subdirectory(compression_zlib)
+add_subdirectory(encryption_aes)
 add_subdirectory(storage_filesystem)

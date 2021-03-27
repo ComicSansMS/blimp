@@ -9,10 +9,12 @@ namespace Tags
 {
 struct sqlite_error_code { };
 struct sqlite_query_string { };
+struct plugin_name {};
 }
 
 namespace Records
 {
+using plugin_name = Ghulbus::ErrorInfo<Tags::plugin_name, std::string>;
 }
 }
 
