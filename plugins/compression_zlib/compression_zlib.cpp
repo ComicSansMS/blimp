@@ -1,5 +1,7 @@
 #include <compression_zlib.hpp>
 
+#include <blimp_plugin_helper_cpp.hpp>
+
 #define ZLIB_CONST
 #include <zlib.h>
 
@@ -11,23 +13,6 @@ namespace {
 struct ErrorStrings {
     static constexpr char const okay[] = "Ok";
     static constexpr char const compression_error[] = "Unexpected error during compression";
-};
-
-class KeyValueStore {
-private:
-    BlimpKeyValueStore m_kv;
-public:
-    explicit KeyValueStore(BlimpKeyValueStore const& kv)
-        :m_kv(kv)
-    {}
-
-    void store(char const* key, BlimpKeyValueStoreValue v) {
-        m_kv.store(m_kv.state, key, v);
-    }
-
-    BlimpKeyValueStoreValue retrieve(char const* key) {
-        return m_kv.retrieve(m_kv.state, key);
-    }
 };
 
 struct Buffer {

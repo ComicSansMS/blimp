@@ -14,5 +14,5 @@ generate_export_header(encryption_aes
 )
 target_sources(encryption_aes PRIVATE ${PROJECT_BINARY_DIR}/encryption_aes_export.h)
 target_include_directories(encryption_aes PRIVATE ${PROJECT_SOURCE_DIR} ${PROJECT_BINARY_DIR})
-target_link_libraries(encryption_aes PRIVATE blimp_plugin_sdk cryptopp-static)
+target_link_libraries(encryption_aes PRIVATE blimp_plugin_sdk blimp_plugin_helper_cpp cryptopp-static)
 

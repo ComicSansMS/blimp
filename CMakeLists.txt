@@ -51,6 +51,9 @@ endif()
 add_library(blimp_plugin_sdk INTERFACE)
 target_include_directories(blimp_plugin_sdk INTERFACE ${PROJECT_SOURCE_DIR}/sdk)
 target_sources(blimp_plugin_sdk INTERFACE ${PROJECT_SOURCE_DIR}/sdk/blimp_plugin_sdk.h)
+add_library(blimp_plugin_helper_cpp INTERFACE)
+target_link_libraries(blimp_plugin_helper_cpp INTERFACE blimp_plugin_sdk)
+target_sources(blimp_plugin_helper_cpp INTERFACE ${PROJECT_SOURCE_DIR}/sdk/blimp_plugin_helper_cpp.hpp)
 
 add_subdirectory(plugins)
 

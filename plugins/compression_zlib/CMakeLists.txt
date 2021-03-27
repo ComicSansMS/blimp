@@ -14,5 +14,5 @@ generate_export_header(compression_zlib
 )
 target_sources(compression_zlib PRIVATE ${PROJECT_BINARY_DIR}/compression_zlib_export.h)
 target_include_directories(compression_zlib PRIVATE ${PROJECT_SOURCE_DIR} ${PROJECT_BINARY_DIR})
-target_link_libraries(compression_zlib PRIVATE blimp_plugin_sdk ZLIB::ZLIB)
+target_link_libraries(compression_zlib PRIVATE blimp_plugin_sdk blimp_plugin_helper_cpp ZLIB::ZLIB)
 
