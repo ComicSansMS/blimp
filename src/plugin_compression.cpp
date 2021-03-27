@@ -11,6 +11,12 @@ PluginCompression::PluginCompression(BlimpDB& blimpdb, std::string const& plugin
     m_compression_plugin_api_info =
         m_compression_dll.get<BlimpPluginInfo()>("blimp_plugin_api_info");
     auto const api_info = m_compression_plugin_api_info();
+    if (api_info.type != BLIMP_PLUGIN_TYPE_COMPRESSION) {
+        GHULBUS_THROW(Exceptions::PluginError{}
+                      << Exception_Info::Records::plugin_name(plugin_name)
+                      << Ghulbus::Exception_Info::filename(m_compression_dll.location().string()),
+                      "Plugin is not a compression plugin");
+    }
     m_compression_plugin_initialize =
         m_compression_dll.get<BlimpPluginResult(BlimpKeyValueStore, BlimpPluginCompression*)>("blimp_plugin_compression_initialize");
     m_compression_plugin_shutdown =

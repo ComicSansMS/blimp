@@ -1,5 +1,5 @@
-#ifndef BLIMP_INCLUDE_GUARD_DB_TABLE_STORAGE_CONTENTS_HPP
-#define BLIMP_INCLUDE_GUARD_DB_TABLE_STORAGE_CONTENTS_HPP
+#ifndef BLIMP_INCLUDE_GUARD_DB_TABLE_STORAGE_INVENTORY_HPP
+#define BLIMP_INCLUDE_GUARD_DB_TABLE_STORAGE_INVENTORY_HPP
 
 #include <sqlpp11/table.h>
 #include <sqlpp11/data_types.h>
@@ -7,7 +7,7 @@
 
 namespace blimpdb
 {
-  namespace StorageContents_
+  namespace StorageInventory_
   {
     struct ContentId
     {
@@ -25,21 +25,21 @@ namespace blimpdb
       };
       using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
     };
-    struct Location
+    struct ContainerId
     {
       struct _alias_t
       {
-        static constexpr const char _literal[] =  "location";
+        static constexpr const char _literal[] =  "container_id";
         using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
         template<typename T>
         struct _member_t
           {
-            T location;
-            T& operator()() { return location; }
-            const T& operator()() const { return location; }
+            T containerId;
+            T& operator()() { return containerId; }
+            const T& operator()() const { return containerId; }
           };
       };
-      using _traits = sqlpp::make_traits<sqlpp::text, sqlpp::tag::require_insert>;
+      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
     };
     struct Offset
     {
@@ -55,7 +55,7 @@ namespace blimpdb
             const T& operator()() const { return offset; }
           };
       };
-      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
+      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::can_be_null>;
     };
     struct Size
     {
@@ -71,7 +71,7 @@ namespace blimpdb
             const T& operator()() const { return size; }
           };
       };
-      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
+      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::can_be_null>;
     };
     struct PartNumber
     {
@@ -87,27 +87,27 @@ namespace blimpdb
             const T& operator()() const { return partNumber; }
           };
       };
-      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
+      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::can_be_null>;
     };
-  } // namespace StorageContents_
+  } // namespace StorageInventory_
 
-  struct StorageContents: sqlpp::table_t<StorageContents,
-               StorageContents_::ContentId,
-               StorageContents_::Location,
-               StorageContents_::Offset,
-               StorageContents_::Size,
-               StorageContents_::PartNumber>
+  struct StorageInventory: sqlpp::table_t<StorageInventory,
+               StorageInventory_::ContentId,
+               StorageInventory_::ContainerId,
+               StorageInventory_::Offset,
+               StorageInventory_::Size,
+               StorageInventory_::PartNumber>
   {
     struct _alias_t
     {
-      static constexpr const char _literal[] =  "storage_contents";
+      static constexpr const char _literal[] =  "storage_inventory";
       using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
       template<typename T>
       struct _member_t
       {
-        T storageContents;
-        T& operator()() { return storageContents; }
-        const T& operator()() const { return storageContents; }
+        T storageInventory;
+        T& operator()() { return storageInventory; }
+        const T& operator()() const { return storageInventory; }
       };
     };
   };

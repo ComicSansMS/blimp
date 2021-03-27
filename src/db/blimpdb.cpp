@@ -7,14 +7,15 @@
 #include <db/table/table_layout.hpp>
 #include <db/table/blimp_properties.hpp>
 #include <db/table/file_contents.hpp>
-#include <db/table/file_element.hpp>
+#include <db/table/file_elements.hpp>
 #include <db/table/indexed_locations.hpp>
 #include <db/table/plugin_kv_store.hpp>
 #include <db/table/user_selection.hpp>
-#include <db/table/snapshot.hpp>
+#include <db/table/snapshots.hpp>
 #include <db/table/snapshot_contents.hpp>
 #include <db/table/sqlite_master.hpp>
-#include <db/table/storage_contents.hpp>
+#include <db/table/storage_containers.hpp>
+#include <db/table/storage_inventory.hpp>
 
 #include <exceptions.hpp>
 #include <version.hpp>
@@ -83,14 +84,16 @@ void createBlimpPropertiesTable(sqlpp::sqlite3::connection& db)
     db.execute(blimpdb::table_layout::user_selection());
     db.execute(blimpdb::table_layout::indexed_locations());
     db.execute(blimpdb::table_layout::file_contents());
-    db.execute(blimpdb::table_layout::file_element());
-    db.execute(blimpdb::table_layout::snapshot());
+    db.execute(blimpdb::table_layout::file_elements());
+    db.execute(blimpdb::table_layout::snapshots());
     db.execute(blimpdb::table_layout::snapshot_contents());
-    db.execute(blimpdb::table_layout::storage_contents());
+    db.execute(blimpdb::table_layout::storage_containers());
+    db.execute(blimpdb::table_layout::storage_inventory());
 
     db.execute("CREATE UNIQUE INDEX idx_indexed_locations_paths ON indexed_locations (path);");
-    db.execute("CREATE INDEX idx_file_element_locations ON file_element (location_id);");
+    db.execute("CREATE INDEX idx_file_element_locations ON file_elements (location_id);");
     db.execute("CREATE UNIQUE INDEX idx_file_content_hashes ON file_contents (hash);");
+    db.execute("CREATE UNIQUE INDEX idx_storage_container_locations ON storage_containers (location);");
 
     db(insert_into(prop_tab).set(prop_tab.id    = "version",
                                  prop_tab.value = std::to_string(BlimpVersion::version())));
@@ -175,7 +178,7 @@ FileIndexDiff BlimpDB::compareFileIndex(std::vector<FileInfo> const& fresh_index
     // find elements from last snapshot not in fresh index
     // -> deleted
     auto const tab_loc = blimpdb::IndexedLocations{};
-    auto const tab_fel = blimpdb::FileElement{};
+    auto const tab_fel = blimpdb::FileElements{};
     auto& db = m_pimpl->db;
     auto const q_find_elements_param =
         select(tab_fel.fileId, tab_fel.fileSize, tab_fel.modifiedDate)
@@ -246,7 +249,7 @@ std::vector<BlimpDB::FileIndexInfo> BlimpDB::updateFileIndex(std::vector<FileInf
     ret.reserve(fresh_index.size());
     auto const tab_loc = blimpdb::IndexedLocations{};
     auto const tab_fco = blimpdb::FileContents{};
-    auto const tab_fel = blimpdb::FileElement{};
+    auto const tab_fel = blimpdb::FileElements{};
     auto& db = m_pimpl->db;
     db.execute("PRAGMA synchronous = OFF");
     db.start_transaction();
@@ -326,12 +329,12 @@ std::vector<BlimpDB::SnapshotInfo> BlimpDB::getSnapshots()
 {
     std::vector<SnapshotInfo> ret;
 
-    auto const tab_snapshot = blimpdb::Snapshot{};
+    auto const tab_snapshots = blimpdb::Snapshots{};
 
     auto& db = m_pimpl->db;
 
-    auto q_select_snapshots = select(tab_snapshot.snapshotId, tab_snapshot.name, tab_snapshot.date)
-                                .from(tab_snapshot)
+    auto q_select_snapshots = select(tab_snapshots.snapshotId, tab_snapshots.name, tab_snapshots.date)
+                                .from(tab_snapshots)
                                 .unconditionally();
 
     for (auto const& r : db(q_select_snapshots)) {
@@ -349,10 +352,10 @@ std::vector<BlimpDB::SnapshotInfo> BlimpDB::getSnapshots()
 BlimpDB::SnapshotId BlimpDB::addSnapshot(std::string const& name)
 {
     auto& db = m_pimpl->db;
-    auto const tab_snapshot = blimpdb::Snapshot{};
+    auto const tab_snapshots = blimpdb::Snapshots{};
     auto const r =
-    db(insert_into(tab_snapshot).set(tab_snapshot.name = name,
-                                     tab_snapshot.date = date::floor<sqlpp::chrono::days>(std::chrono::system_clock::now())));
+    db(insert_into(tab_snapshots).set(tab_snapshots.name = name,
+                                     tab_snapshots.date = date::floor<sqlpp::chrono::days>(std::chrono::system_clock::now())));
 
     return SnapshotId{ static_cast<int64_t>(r) };
 }
@@ -390,7 +393,7 @@ BlimpDB::FileElementId BlimpDB::newFileElement(FileInfo const& finfo, FileConten
 {
     auto& db = m_pimpl->db;
     auto const tab_indexed_locations = blimpdb::IndexedLocations{};
-    auto const tab_file_element = blimpdb::FileElement{};
+    auto const tab_file_elements = blimpdb::FileElements{};
 
     auto const result_location = db(select(tab_indexed_locations.locationId)
                                     .from(tab_indexed_locations)
@@ -401,26 +404,26 @@ BlimpDB::FileElementId BlimpDB::newFileElement(FileInfo const& finfo, FileConten
         int64_t const location_id =
             db(insert_into(tab_indexed_locations).set(tab_indexed_locations.path = to_string(finfo.path)));
         int64_t const file_element_id =
-            db(insert_into(tab_file_element).set(tab_file_element.locationId = location_id,
-                                                 tab_file_element.contentId = content_id.i,
-                                                 tab_file_element.fileSize = finfo.size,
-                                                 tab_file_element.modifiedDate = finfo.modified_time));
+            db(insert_into(tab_file_elements).set(tab_file_elements.locationId = location_id,
+                                                  tab_file_elements.contentId = content_id.i,
+                                                  tab_file_elements.fileSize = finfo.size,
+                                                  tab_file_elements.modifiedDate = finfo.modified_time));
         if (do_sync) { db.commit_transaction(); }
         return FileElementId{ .i = file_element_id };
     } else {
         // the location is known, we may have this file element already
         auto const result_file_element =
-            db(select(tab_file_element.fileId)
-               .from(tab_file_element)
-               .where((tab_file_element.contentId == content_id.i) &&
-                      (tab_file_element.modifiedDate == finfo.modified_time)));
+            db(select(tab_file_elements.fileId)
+               .from(tab_file_elements)
+               .where((tab_file_elements.contentId == content_id.i) &&
+                      (tab_file_elements.modifiedDate == finfo.modified_time)));
         if (!result_file_element.empty()) { return FileElementId{ .i = result_file_element.front().fileId }; }
         // first time we've seen this file with this content, create new file element
         int64_t const file_element_id =
-            db(insert_into(tab_file_element).set(tab_file_element.locationId = result_location.front().locationId,
-                                                 tab_file_element.contentId = content_id.i,
-                                                 tab_file_element.fileSize = finfo.size,
-                                                 tab_file_element.modifiedDate = finfo.modified_time));
+            db(insert_into(tab_file_elements).set(tab_file_elements.locationId = result_location.front().locationId,
+                                                  tab_file_elements.contentId = content_id.i,
+                                                  tab_file_elements.fileSize = finfo.size,
+                                                  tab_file_elements.modifiedDate = finfo.modified_time));
         return FileElementId{ .i = file_element_id };
     }
 }
@@ -430,15 +433,21 @@ void BlimpDB::newStorageElement(FileContentId const& content_id,
                                 bool do_sync)
 {
     auto& db = m_pimpl->db;
-    auto const tab_storage_contents = blimpdb::StorageContents{};
+    auto const tab_storage_containers = blimpdb::StorageContainers{};
+    auto const tab_storage_inventory = blimpdb::StorageInventory{};
 
     if (do_sync) { db.start_transaction(); }
     for (auto const& l : storage_locations) {
-        db(insert_into(tab_storage_contents).set(tab_storage_contents.contentId = content_id.i,
-                                                 tab_storage_contents.location = l.location,
-                                                 tab_storage_contents.offset = l.offset,
-                                                 tab_storage_contents.size = l.size,
-                                                 tab_storage_contents.partNumber = l.part_number));
+        auto const res = db(select(tab_storage_containers.containerId)
+                            .from(tab_storage_containers)
+                            .where(tab_storage_containers.location == l.location));
+        std::int64_t const container_id = (!res.empty()) ? res.front().containerId :
+            db(insert_into(tab_storage_containers).set(tab_storage_containers.location = l.location));
+        db(insert_into(tab_storage_inventory).set(tab_storage_inventory.contentId = content_id.i,
+                                                  tab_storage_inventory.containerId = container_id,
+                                                  tab_storage_inventory.offset = l.offset,
+                                                  tab_storage_inventory.size = l.size,
+                                                  tab_storage_inventory.partNumber = l.part_number));
     }
     if (do_sync) { db.commit_transaction(); }
 }

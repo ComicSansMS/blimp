@@ -19,6 +19,7 @@ inline constexpr char const* blimp_properties()
 }
 
 /** The key/value store used by plugins.
+ * Keys are composed by concatenating the UUID of the plugin with a key string that is chosen by the plugin.
  */
 inline constexpr char const* plugin_kv_store()
 {
@@ -73,10 +74,10 @@ inline constexpr char const* file_contents()
 * file_element stores only the metadata relevant for indexing. The actual content of the file is represented
 * by file_contents.
 */
-inline constexpr char const* file_element()
+inline constexpr char const* file_elements()
 {
     return R"(
-        CREATE TABLE file_element (
+        CREATE TABLE file_elements (
             file_id         INTEGER PRIMARY KEY,
             location_id     INTEGER NOT NULL        REFERENCES indexed_locations(location_id)
                                                     ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -89,10 +90,10 @@ inline constexpr char const* file_element()
 
 /** A list of snapshots. A snapshot is a set of file_contents.
  */
-inline constexpr char const* snapshot()
+inline constexpr char const* snapshots()
 {
     return R"(
-        CREATE TABLE snapshot (
+        CREATE TABLE snapshots (
             snapshot_id INTEGER PRIMARY KEY,
             name        TEXT    NOT NULL,
             date        TEXT    NOT NULL
@@ -105,32 +106,43 @@ inline constexpr char const* snapshot_contents()
 {
     return R"(
         CREATE TABLE snapshot_contents (
-            snapshot_id INTEGER NOT NULL    REFERENCES snapshot(snapshot_id)
+            snapshot_id INTEGER NOT NULL    REFERENCES snapshots(snapshot_id)
                                             ON UPDATE RESTRICT ON DELETE RESTRICT,
-            file_id     INTEGER NOT NULL    REFERENCES file_element(file_id)
+            file_id     INTEGER NOT NULL    REFERENCES file_elements(file_id)
                                             ON UPDATE RESTRICT ON DELETE RESTRICT
         );)";
 }
 
-/** A single chunk of data in storage.
- * The contents of a file may be spread across multiple storage_contents elements with the same content_id.
- * Each element is located in storage by a location string and an offset for that location. size is the number of
- * bytes for the respective content at that location, part_number is the 0-based index of the content_element among
- * all the elements with the same content_id.
+/** A list of all containers in storage.
+ * A container stores a fixed amount of data. Multiple files may share a container and a single file may
+ * be split across multiple containers.
  */
-inline constexpr char const* storage_contents()
+inline constexpr char const* storage_containers()
 {
     return R"(
-        CREATE TABLE storage_contents (
-            content_id      INTEGER NOT NULL    REFERENCES file_contents(content_id)
-                                                ON UPDATE RESTRICT ON DELETE RESTRICT,
-            location        TEXT NOT NULL,
+        CREATE TABLE storage_containers (
+            container_id    INTEGER PRIMARY KEY,
+            location        TEXT    UNIQUE NOT NULL
+        );)";
+}
+
+/** The inventory of all individual chunks of data in storage.
+ * The contents of a file may be spread across multiple inventory elements with the same content_id.
+ * Each element is stored within a container at the specified offset. size is the number of bytes for
+ * the respective content at that location, part_number is the 0-based index of the content_element among
+ * all the elements with the same content_id.
+ */
+inline constexpr char const* storage_inventory()
+{
+    return R"(
+        CREATE TABLE storage_inventory (
+            content_id      INTEGER NOT NULL    REFERENCES file_contents(content_id)        ON UPDATE RESTRICT ON DELETE RESTRICT,
+            container_id    INTEGER NOT NULL    REFERENCES storage_containers(container_id) ON UPDATE RESTRICT ON DELETE RESTRICT,
             offset          INTEGER,
             size            INTEGER,
             part_number     INTEGER
         );)";
 }
-
 }
 }
 }

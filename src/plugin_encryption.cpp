@@ -11,6 +11,12 @@ PluginEncryption::PluginEncryption(BlimpDB& blimpdb, std::string const& plugin_n
     m_encryption_plugin_api_info =
         m_encryption_dll.get<BlimpPluginInfo()>("blimp_plugin_api_info");
     auto const api_info = m_encryption_plugin_api_info();
+    if (api_info.type != BLIMP_PLUGIN_TYPE_ENCRYPTION) {
+        GHULBUS_THROW(Exceptions::PluginError{}
+                      << Exception_Info::Records::plugin_name(plugin_name)
+                      << Ghulbus::Exception_Info::filename(m_encryption_dll.location().string()),
+                      "Plugin is not an encryption plugin");
+    }
     m_encryption_plugin_initialize =
         m_encryption_dll.get<BlimpPluginResult(BlimpKeyValueStore, BlimpPluginEncryption*)>("blimp_plugin_encryption_initialize");
     m_encryption_plugin_shutdown =

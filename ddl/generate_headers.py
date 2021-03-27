@@ -5,13 +5,14 @@ from subprocess import check_call
 ddl_files = [
     'blimp_properties',
     'file_contents',
-    'file_element',
+    'file_elements',
     'indexed_locations',
     'plugin_kv_store',
-    'snapshot',
+    'snapshots',
     'snapshot_contents',
     'sqlite_master',
-    'storage_contents',
+    'storage_containers',
+    'storage_inventory',
     'user_selection',
 ];
 

@@ -1,5 +1,5 @@
-#ifndef BLIMP_INCLUDE_GUARD_DB_TABLE_SNAPSHOT_HPP
-#define BLIMP_INCLUDE_GUARD_DB_TABLE_SNAPSHOT_HPP
+#ifndef BLIMP_INCLUDE_GUARD_DB_TABLE_SNAPSHOTS_HPP
+#define BLIMP_INCLUDE_GUARD_DB_TABLE_SNAPSHOTS_HPP
 
 #include <sqlpp11/table.h>
 #include <sqlpp11/data_types.h>
@@ -7,7 +7,7 @@
 
 namespace blimpdb
 {
-  namespace Snapshot_
+  namespace Snapshots_
   {
     struct SnapshotId
     {
@@ -59,21 +59,21 @@ namespace blimpdb
     };
   }
 
-  struct Snapshot: sqlpp::table_t<Snapshot,
-               Snapshot_::SnapshotId,
-               Snapshot_::Name,
-               Snapshot_::Date>
+  struct Snapshots: sqlpp::table_t<Snapshots,
+               Snapshots_::SnapshotId,
+               Snapshots_::Name,
+               Snapshots_::Date>
   {
     struct _alias_t
     {
-      static constexpr const char _literal[] =  "snapshot";
+      static constexpr const char _literal[] =  "snapshots";
       using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
       template<typename T>
       struct _member_t
       {
-        T snapshot;
-        T& operator()() { return snapshot; }
-        const T& operator()() const { return snapshot; }
+        T snapshots;
+        T& operator()() { return snapshots; }
+        const T& operator()() const { return snapshots; }
       };
     };
   };

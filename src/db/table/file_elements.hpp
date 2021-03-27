@@ -1,5 +1,5 @@
-#ifndef BLIMP_INCLUDE_GUARD_DB_TABLE_FILE_ELEMENT_HPP
-#define BLIMP_INCLUDE_GUARD_DB_TABLE_FILE_ELEMENT_HPP
+#ifndef BLIMP_INCLUDE_GUARD_DB_TABLE_FILE_ELEMENTS_HPP
+#define BLIMP_INCLUDE_GUARD_DB_TABLE_FILE_ELEMENTS_HPP
 
 #include <sqlpp11/table.h>
 #include <sqlpp11/data_types.h>
@@ -7,7 +7,7 @@
 
 namespace blimpdb
 {
-  namespace FileElement_
+  namespace FileElements_
   {
     struct FileId
     {
@@ -91,23 +91,23 @@ namespace blimpdb
     };
   }
 
-  struct FileElement: sqlpp::table_t<FileElement,
-               FileElement_::FileId,
-               FileElement_::LocationId,
-               FileElement_::ContentId,
-               FileElement_::FileSize,
-               FileElement_::ModifiedDate>
+  struct FileElements: sqlpp::table_t<FileElements,
+               FileElements_::FileId,
+               FileElements_::LocationId,
+               FileElements_::ContentId,
+               FileElements_::FileSize,
+               FileElements_::ModifiedDate>
   {
     struct _alias_t
     {
-      static constexpr const char _literal[] =  "file_element";
+      static constexpr const char _literal[] =  "file_elements";
       using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
       template<typename T>
       struct _member_t
       {
-        T fileElement;
-        T& operator()() { return fileElement; }
-        const T& operator()() const { return fileElement; }
+        T fileElements;
+        T& operator()() { return fileElements; }
+        const T& operator()() const { return fileElements; }
       };
     };
   };

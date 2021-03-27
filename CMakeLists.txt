@@ -103,13 +103,14 @@ set(BLIMP_TABLE_HEADER_FILES
 
     ${BLIMP_SOURCE_DIRECTORY}/db/table/blimp_properties.hpp
     ${BLIMP_SOURCE_DIRECTORY}/db/table/file_contents.hpp
-    ${BLIMP_SOURCE_DIRECTORY}/db/table/file_element.hpp
+    ${BLIMP_SOURCE_DIRECTORY}/db/table/file_elements.hpp
     ${BLIMP_SOURCE_DIRECTORY}/db/table/indexed_locations.hpp
     ${BLIMP_SOURCE_DIRECTORY}/db/table/plugin_kv_store.hpp
-    ${BLIMP_SOURCE_DIRECTORY}/db/table/snapshot.hpp
+    ${BLIMP_SOURCE_DIRECTORY}/db/table/snapshots.hpp
     ${BLIMP_SOURCE_DIRECTORY}/db/table/snapshot_contents.hpp
     ${BLIMP_SOURCE_DIRECTORY}/db/table/sqlite_master.hpp
-    ${BLIMP_SOURCE_DIRECTORY}/db/table/storage_contents.hpp
+    ${BLIMP_SOURCE_DIRECTORY}/db/table/storage_containers.hpp
+    ${BLIMP_SOURCE_DIRECTORY}/db/table/storage_inventory.hpp
     ${BLIMP_SOURCE_DIRECTORY}/db/table/user_selection.hpp
 )
 source_group("Table Headers" FILES ${BLIMP_TABLE_HEADER_FILES})
