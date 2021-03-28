@@ -48,10 +48,12 @@ struct BlimpPluginEncryptionState {
     char const* error_string;
     KeyValueStore kv_store;
     CryptoPP::AutoSeededRandomPool pool;
+    CryptoPP::AutoSeededRandomPool iv_pool;
     std::array<CryptoPP::byte, CryptoPP::AES::MAX_KEYLENGTH> master_key;
     CryptoPP::ECB_Mode<CryptoPP::AES>::Encryption master_encryption;
     CryptoPP::ECB_Mode<CryptoPP::AES>::Decryption master_decryption;
     std::array<CryptoPP::byte, CryptoPP::AES::MAX_KEYLENGTH> container_key;
+    CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption container_encryption;
 
     BlimpPluginEncryptionState(BlimpKeyValueStore const& n_kv_store);
     ~BlimpPluginEncryptionState();
@@ -168,8 +170,8 @@ BlimpPluginResult BlimpPluginEncryptionState::setPassword(BlimpPluginEncryptionP
 
 BlimpPluginResult BlimpPluginEncryptionState::newStorageContainer(int64_t container_id)
 {
-    std::string const kv_string = "container_key_" + std::to_string(container_id);
-    BlimpKeyValueStoreValue container_key_v = kv_store.retrieve(kv_string.c_str());
+    std::string const kv_string_key = "container_key_" + std::to_string(container_id);
+    BlimpKeyValueStoreValue container_key_v = kv_store.retrieve(kv_string_key.c_str());
     if (container_key_v.data == nullptr) {
         std::array<CryptoPP::byte, CryptoPP::AES::MAX_KEYLENGTH> new_key;
         pool.GenerateBlock(new_key.data(), new_key.size());
@@ -179,14 +181,33 @@ BlimpPluginResult BlimpPluginEncryptionState::newStorageContainer(int64_t contai
         BlimpKeyValueStoreValue const v{
             .data = encrypted_key_str.data(), .size = static_cast<int64_t>(encrypted_key_str.size())
         };
-        kv_store.store(kv_string.c_str(), v);
+        kv_store.store(kv_string_key.c_str(), v);
         std::fill(new_key.begin(), new_key.end(), 0);
-        container_key_v = kv_store.retrieve(kv_string.c_str());
+        container_key_v = kv_store.retrieve(kv_string_key.c_str());
     }
     if (container_key_v.size != CryptoPP::AES::MAX_KEYLENGTH * 2) {
         return BLIMP_PLUGIN_RESULT_CORRUPTED_DATA;
     }
+
+    std::string const kv_string_iv = "container_iv_" + std::to_string(container_id);
+    BlimpKeyValueStoreValue container_iv_v = kv_store.retrieve(kv_string_iv.c_str());
+    if (container_iv_v.data == nullptr) {
+        std::array<CryptoPP::byte, CryptoPP::AES::BLOCKSIZE> new_iv;
+        iv_pool.GenerateBlock(new_iv.data(), new_iv.size());
+        auto const iv_str = to_string(new_iv.data(), new_iv.size());
+        BlimpKeyValueStoreValue const v{ .data = iv_str.data(), .size = static_cast<int64_t>(iv_str.size()) };
+        kv_store.store(kv_string_iv.c_str(), v);
+        container_iv_v = kv_store.retrieve(kv_string_iv.c_str());
+    }
+    if (container_iv_v.size != CryptoPP::AES::BLOCKSIZE * 2) {
+        return BLIMP_PLUGIN_RESULT_CORRUPTED_DATA;
+    }
+
     auto const encrypted_key = from_string(container_key_v.data, container_key_v.size);
     master_decryption.ProcessData(container_key.data(), encrypted_key.data(), encrypted_key.size());
+
+    auto const container_iv = from_string(container_iv_v.data, container_iv_v.size);
+    container_encryption.SetKeyWithIV(container_key.data(), container_key.size(), container_iv.data());
+
     return BLIMP_PLUGIN_RESULT_OK;
 }
