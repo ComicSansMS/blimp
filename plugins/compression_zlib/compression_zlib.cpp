@@ -52,9 +52,9 @@ struct BlimpPluginCompressionState {
     Buffer public_buffer;
     std::vector<Buffer> free_buffers;
     char const* error_string;
-    KeyValueStore m_kvStore;
+    KeyValueStore kv_store;
 
-    BlimpPluginCompressionState(BlimpKeyValueStore const& kv_store);
+    BlimpPluginCompressionState(BlimpKeyValueStore const& n_kv_store);
     ~BlimpPluginCompressionState();
 
     BlimpPluginCompressionState(BlimpPluginCompressionState const&) = delete;
@@ -104,7 +104,7 @@ BlimpFileChunk blimp_plugin_get_compressed_chunk(BlimpPluginCompressionStateHand
 BlimpPluginResult blimp_plugin_compression_initialize(BlimpKeyValueStore kv_store, BlimpPluginCompression* plugin)
 {
     if (plugin->abi != BLIMP_PLUGIN_ABI_1_0_0) {
-        return BLIMP_PLUGIN_INVALID_ARGUMENT;
+        return BLIMP_PLUGIN_RESULT_INVALID_ARGUMENT;
     }
     try {
         plugin->state = new BlimpPluginCompressionState(kv_store);
@@ -123,8 +123,8 @@ void blimp_plugin_compression_shutdown(BlimpPluginCompression* plugin)
     delete plugin->state;
 }
 
-BlimpPluginCompressionState::BlimpPluginCompressionState(BlimpKeyValueStore const& kv_store)
-    :m_kvStore(kv_store)
+BlimpPluginCompressionState::BlimpPluginCompressionState(BlimpKeyValueStore const& n_kv_store)
+    :kv_store(n_kv_store)
 {
     error_string = ErrorStrings::okay;
     zs.opaque = nullptr;
@@ -151,7 +151,7 @@ char const* BlimpPluginCompressionState::get_last_error()
 BlimpPluginResult BlimpPluginCompressionState::compress_file_chunk(BlimpFileChunk chunk)
 {
     if (chunk.size > std::numeric_limits<uInt>::max()) {
-        return BLIMP_PLUGIN_INVALID_ARGUMENT;
+        return BLIMP_PLUGIN_RESULT_INVALID_ARGUMENT;
     }
     if (chunk.data != nullptr) {
         if (reinterpret_cast<Bytef const*>(chunk.data) != zs.next_in) {

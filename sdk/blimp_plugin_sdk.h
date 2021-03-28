@@ -44,7 +44,8 @@ typedef BlimpPluginInfo(*blimp_plugin_api_info_type)();
 typedef enum BlimpPluginResult_Tag {
     BLIMP_PLUGIN_RESULT_OK = 0,
     BLIMP_PLUGIN_RESULT_FAILED,
-    BLIMP_PLUGIN_INVALID_ARGUMENT,
+    BLIMP_PLUGIN_RESULT_INVALID_ARGUMENT,
+    BLIMP_PLUGIN_RESULT_CORRUPTED_DATA,
 } BlimpPluginResult;
 
 typedef enum BlimpConfigurationType_Tag {
@@ -67,8 +68,8 @@ typedef struct BlimpFileChunk_Tag {
 } BlimpFileChunk;
 
 typedef struct BlimpKeyValueStoreValue_Tag {
-    int64_t size;
     char const* data;
+    int64_t size;
 } BlimpKeyValueStoreValue;
 
 struct BlimpKeyValueStoreState;
@@ -98,11 +99,22 @@ typedef void (*blimp_plugin_compression_shutdown_type)(BlimpPluginCompression* p
 struct BlimpPluginEncryptionState;
 typedef struct BlimpPluginEncryptionState* BlimpPluginEncryptionStateHandle;
 
+typedef struct BlimpPluginEncryptionPassword_Tag {
+    char const* data;
+    int64_t size;
+} BlimpPluginEncryptionPassword;
+
+typedef struct BlimpPluginEncryptionKey_Tag {
+    char const* data;
+    int64_t size;
+} BlimpPluginEncryptionKey;
+
 typedef struct BlimpPluginEncryption_Tag {
     BlimpPluginABI abi;
     BlimpPluginEncryptionStateHandle state;
     char const* (*get_last_error)(BlimpPluginEncryptionStateHandle state);
-    BlimpPluginResult (*new_storage_container)(int64_t container_id);
+    BlimpPluginResult (*set_password)(BlimpPluginEncryptionStateHandle state, BlimpPluginEncryptionPassword password);
+    BlimpPluginResult (*new_storage_container)(BlimpPluginEncryptionStateHandle state, int64_t container_id);
     BlimpPluginResult (*encrypt_file_chunk)(BlimpPluginEncryptionStateHandle state, BlimpFileChunk chunk);
     BlimpFileChunk (*get_encrypted_chunk)(BlimpPluginEncryptionStateHandle state);
 } BlimpPluginEncryption;

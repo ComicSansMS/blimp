@@ -41,3 +41,29 @@ BlimpPluginInfo PluginEncryption::pluginInfo() const
 {
     return m_encryption_plugin_api_info();
 }
+
+void PluginEncryption::setPassword(std::string_view password)
+{
+    BlimpPluginEncryptionPassword const p{
+        .data = password.data(),
+        .size = static_cast<int64_t>(password.size())
+    };
+    BlimpPluginResult const res = m_encryption.set_password(m_encryption.state, p);
+    if (res != BLIMP_PLUGIN_RESULT_OK) {
+        GHULBUS_THROW(Exceptions::PluginError{}
+                      << Ghulbus::Exception_Info::filename(m_encryption_dll.location().string())
+                      << Exception_Info::Records::plugin_error_code(res),
+                      "Error while setting encryption password");
+    }
+}
+
+void PluginEncryption::newStorageContainer(BlimpDB::StorageContainerId id)
+{
+    BlimpPluginResult const res = m_encryption.new_storage_container(m_encryption.state, id.i);
+    if (res != BLIMP_PLUGIN_RESULT_OK) {
+        GHULBUS_THROW(Exceptions::PluginError{}
+                      << Ghulbus::Exception_Info::filename(m_encryption_dll.location().string())
+                      << Exception_Info::Records::plugin_error_code(res),
+                      "Error while switching encryption to new container");
+    }
+}

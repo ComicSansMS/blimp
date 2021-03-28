@@ -500,7 +500,7 @@ BlimpDB::PluginStoreValue BlimpDB::pluginRetrieveValue(BlimpPluginInfo const& pl
         db(select(tab_plugin_kv_store.value).from(tab_plugin_kv_store)
                                             .where(tab_plugin_kv_store.storeKey == store_key));
     if (res.empty()) {
-        return PluginStoreValue{ .data = {}, .value = { .size = -1, .data = nullptr } };
+        return PluginStoreValue{ .data = {}, .value = { .data = nullptr, .size = -1 } };
     }
     auto const& value = res.front().value;
     PluginStoreValue ret;

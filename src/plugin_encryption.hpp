@@ -2,10 +2,13 @@
 #define BLIMP_INCLUDE_GUARD_PLUGIN_ENCRYPTION_HPP
 
 #include <blimp_plugin_sdk.h>
+#include <db/blimpdb.hpp>
 
 #include <boost/dll/shared_library.hpp>
 
 #include <memory>
+#include <string>
+#include <string_view>
 
 class BlimpDB;
 class PluginKeyValueStore;
@@ -24,6 +27,9 @@ public:
     ~PluginEncryption();
 
     BlimpPluginInfo pluginInfo() const;
+
+    void setPassword(std::string_view password);
+    void newStorageContainer(BlimpDB::StorageContainerId id);
 };
 
 #endif

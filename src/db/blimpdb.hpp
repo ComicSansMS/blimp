@@ -44,6 +44,10 @@ public:
         int64_t i;
     };
 
+    struct StorageContainerId {
+        int64_t i;
+    };
+
     struct SnapshotInfo {
         SnapshotId id;
         std::string name;

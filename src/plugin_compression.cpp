@@ -44,7 +44,13 @@ BlimpPluginInfo PluginCompression::pluginInfo() const
 
 void PluginCompression::compressFileChunk(BlimpFileChunk chunk)
 {
-    m_compression.compress_file_chunk(m_compression.state, chunk);
+    BlimpPluginResult const res = m_compression.compress_file_chunk(m_compression.state, chunk);
+    if (res != BLIMP_PLUGIN_RESULT_OK) {
+        GHULBUS_THROW(Exceptions::PluginError{}
+                      << Ghulbus::Exception_Info::filename(m_compression_dll.location().string())
+                      << Exception_Info::Records::plugin_error_code(res),
+                      "Error while adding file chunk for compression");
+    }
 }
 
 BlimpFileChunk PluginCompression::getCompressedChunk()
