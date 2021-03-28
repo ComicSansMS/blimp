@@ -30,7 +30,7 @@ PluginCompression::PluginCompression(BlimpDB& blimpdb, std::string const& plugin
                       << Ghulbus::Exception_Info::filename(m_compression_dll.location().string()),
                       "Unable to initialize compression plugin");
     }
-    m_compression_guard = 
+    m_compression_guard =
         std::unique_ptr<BlimpPluginCompression, blimp_plugin_compression_shutdown_type>(&m_compression,
                                                                                         m_compression_plugin_shutdown);
 }

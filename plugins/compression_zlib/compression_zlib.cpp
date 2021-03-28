@@ -5,9 +5,10 @@
 #define ZLIB_CONST
 #include <zlib.h>
 
+#include <deque>
+#include <limits>
 #include <stdexcept>
 #include <vector>
-#include <limits>
 
 namespace {
 struct ErrorStrings {
@@ -48,7 +49,7 @@ struct Buffer {
 struct BlimpPluginCompressionState {
     z_stream zs;
     Buffer buffer;
-    std::vector<Buffer> available_buffers;
+    std::deque<Buffer> available_buffers;
     Buffer public_buffer;
     std::vector<Buffer> free_buffers;
     char const* error_string;
@@ -192,8 +193,8 @@ BlimpFileChunk BlimpPluginCompressionState::get_compressed_chunk()
 {
     if (!available_buffers.empty()) {
         free_buffers.emplace_back(std::move(public_buffer));
-        public_buffer = std::move(available_buffers.back());
-        available_buffers.pop_back();
+        public_buffer = std::move(available_buffers.front());
+        available_buffers.pop_front();
         BlimpFileChunk ret;
         ret.data = public_buffer.data_char();
         ret.size = public_buffer.size();

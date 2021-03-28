@@ -11,12 +11,14 @@ struct sqlite_error_code { };
 struct sqlite_query_string { };
 struct plugin_name {};
 struct plugin_error_code {};
+struct plugin_error_message {};
 }
 
 namespace Records
 {
 using plugin_name = Ghulbus::ErrorInfo<Tags::plugin_name, std::string>;
 using plugin_error_code = Ghulbus::ErrorInfo<Tags::plugin_error_code, int>;
+using plugin_error_message = Ghulbus::ErrorInfo<Tags::plugin_error_code, std::string>;
 }
 }
 

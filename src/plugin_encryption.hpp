@@ -28,8 +28,11 @@ public:
 
     BlimpPluginInfo pluginInfo() const;
 
+    char const* getLastError();
     void setPassword(std::string_view password);
     void newStorageContainer(BlimpDB::StorageContainerId id);
+    void encryptFileChunk(BlimpFileChunk chunk);
+    BlimpFileChunk getEncryptedChunk();
 };
 
 #endif

@@ -12,15 +12,18 @@
 
 #include <algorithm>
 #include <array>
+#include <deque>
 #include <stdexcept>
 #include <vector>
-#include <limits>
-#include <tuple>
 
 namespace {
 struct ErrorStrings {
     static constexpr char const okay[] = "Ok";
     static constexpr char const encryption_error[] = "Unexpected error during encryption";
+    static constexpr char const corrupted_database_master_key[] = "Master key entry in database is corrupted";
+    static constexpr char const corrupted_database_container_key[] = "Container key entry in database is corrupted";
+    static constexpr char const corrupted_database_container_iv[] = "Container initialization vector entry in database is corrupted";
+    static constexpr char const master_key_error[] = "Error reconstructing master key";
 };
 
 std::string to_string(CryptoPP::byte const* data, std::size_t size)
@@ -54,6 +57,10 @@ struct BlimpPluginEncryptionState {
     CryptoPP::ECB_Mode<CryptoPP::AES>::Decryption master_decryption;
     std::array<CryptoPP::byte, CryptoPP::AES::MAX_KEYLENGTH> container_key;
     CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption container_encryption;
+    std::vector<CryptoPP::byte> in_buffer;
+    std::deque<std::vector<CryptoPP::byte>> out_available;
+    std::vector<std::vector<CryptoPP::byte>> out_free;
+    std::vector<CryptoPP::byte> busy_buffer;
 
     BlimpPluginEncryptionState(BlimpKeyValueStore const& n_kv_store);
     ~BlimpPluginEncryptionState();
@@ -62,9 +69,14 @@ struct BlimpPluginEncryptionState {
     BlimpPluginEncryptionState& operator=(BlimpPluginEncryptionState const&) = delete;
 
     char const* get_last_error();
+    int32_t get_block_size();
 
-    BlimpPluginResult setPassword(BlimpPluginEncryptionPassword password);
-    BlimpPluginResult newStorageContainer(int64_t container_id);
+    BlimpPluginResult set_password(BlimpPluginEncryptionPassword const& password);
+    BlimpPluginResult new_storage_container(int64_t container_id);
+    BlimpPluginResult encrypt_file_chunk(BlimpFileChunk const& file_chunk);
+    BlimpFileChunk get_encrypted_chunk();
+
+    std::vector<CryptoPP::byte> getFreeBuffer(std::size_t s);
 };
 
 BlimpPluginInfo blimp_plugin_api_info()
@@ -90,14 +102,29 @@ char const* blimp_plugin_get_last_error(BlimpPluginEncryptionStateHandle state)
     return state->get_last_error();
 }
 
+int32_t blimp_plugin_get_block_size(BlimpPluginEncryptionStateHandle state)
+{
+    return state->get_block_size();
+}
+
 BlimpPluginResult blimp_plugin_set_password(BlimpPluginEncryptionStateHandle state, BlimpPluginEncryptionPassword password)
 {
-    return state->setPassword(password);
+    return state->set_password(password);
 }
 
 BlimpPluginResult blimp_plugin_new_storage_container(BlimpPluginEncryptionStateHandle state, int64_t container_id)
 {
-    return state->newStorageContainer(container_id);
+    return state->new_storage_container(container_id);
+}
+
+BlimpPluginResult blimp_plugin_encrypt_file_chunk(BlimpPluginEncryptionStateHandle state, BlimpFileChunk file_chunk)
+{
+    return state->encrypt_file_chunk(file_chunk);
+}
+
+BlimpFileChunk blimp_plugin_get_encrypted_chunk(BlimpPluginEncryptionStateHandle state)
+{
+    return state->get_encrypted_chunk();
 }
 
 BlimpPluginResult blimp_plugin_encryption_initialize(BlimpKeyValueStore kv_store, BlimpPluginEncryption* plugin)
@@ -112,8 +139,11 @@ BlimpPluginResult blimp_plugin_encryption_initialize(BlimpKeyValueStore kv_store
         return BLIMP_PLUGIN_RESULT_FAILED;
     }
     plugin->get_last_error = blimp_plugin_get_last_error;
+    plugin->get_block_size = blimp_plugin_get_block_size;
     plugin->set_password = blimp_plugin_set_password;
     plugin->new_storage_container = blimp_plugin_new_storage_container;
+    plugin->encrypt_file_chunk = blimp_plugin_encrypt_file_chunk;
+    plugin->get_encrypted_chunk = blimp_plugin_get_encrypted_chunk;
     return BLIMP_PLUGIN_RESULT_OK;
 }
 
@@ -123,7 +153,7 @@ void blimp_plugin_encryption_shutdown(BlimpPluginEncryption* plugin)
 }
 
 BlimpPluginEncryptionState::BlimpPluginEncryptionState(BlimpKeyValueStore const& n_kv_store)
-    :kv_store(n_kv_store)
+    :kv_store(n_kv_store), master_key{ 0 }, container_key{ 0 }
 {
     error_string = ErrorStrings::okay;
 }
@@ -139,7 +169,12 @@ char const* BlimpPluginEncryptionState::get_last_error()
     return error_string;
 }
 
-BlimpPluginResult BlimpPluginEncryptionState::setPassword(BlimpPluginEncryptionPassword password)
+int32_t BlimpPluginEncryptionState::get_block_size()
+{
+    return container_encryption.MandatoryBlockSize();
+}
+
+BlimpPluginResult BlimpPluginEncryptionState::set_password(BlimpPluginEncryptionPassword const& password)
 {
     BlimpKeyValueStoreValue salt_v = kv_store.retrieve("master_salt");
     if (salt_v.data == nullptr) {
@@ -153,6 +188,7 @@ BlimpPluginResult BlimpPluginEncryptionState::setPassword(BlimpPluginEncryptionP
         salt_v = kv_store.retrieve("master_salt");
     }
     if (salt_v.size != 64) {
+        error_string = ErrorStrings::corrupted_database_master_key;
         return BLIMP_PLUGIN_RESULT_CORRUPTED_DATA;
     }
 
@@ -164,11 +200,11 @@ BlimpPluginResult BlimpPluginEncryptionState::setPassword(BlimpPluginEncryptionP
                                      salt.data(), salt.size(), n_iterations);
     master_encryption.SetKey(master_key.data(), master_key.size());
     master_decryption.SetKey(master_key.data(), master_key.size());
-    if (res != n_iterations) { return BLIMP_PLUGIN_RESULT_FAILED; }
+    if (res != n_iterations) { error_string = ErrorStrings::master_key_error; return BLIMP_PLUGIN_RESULT_FAILED; }
     return BLIMP_PLUGIN_RESULT_OK;
 }
 
-BlimpPluginResult BlimpPluginEncryptionState::newStorageContainer(int64_t container_id)
+BlimpPluginResult BlimpPluginEncryptionState::new_storage_container(int64_t container_id)
 {
     std::string const kv_string_key = "container_key_" + std::to_string(container_id);
     BlimpKeyValueStoreValue container_key_v = kv_store.retrieve(kv_string_key.c_str());
@@ -186,6 +222,7 @@ BlimpPluginResult BlimpPluginEncryptionState::newStorageContainer(int64_t contai
         container_key_v = kv_store.retrieve(kv_string_key.c_str());
     }
     if (container_key_v.size != CryptoPP::AES::MAX_KEYLENGTH * 2) {
+        error_string = ErrorStrings::corrupted_database_container_key;
         return BLIMP_PLUGIN_RESULT_CORRUPTED_DATA;
     }
 
@@ -200,6 +237,7 @@ BlimpPluginResult BlimpPluginEncryptionState::newStorageContainer(int64_t contai
         container_iv_v = kv_store.retrieve(kv_string_iv.c_str());
     }
     if (container_iv_v.size != CryptoPP::AES::BLOCKSIZE * 2) {
+        error_string = ErrorStrings::corrupted_database_container_iv;
         return BLIMP_PLUGIN_RESULT_CORRUPTED_DATA;
     }
 
@@ -210,4 +248,54 @@ BlimpPluginResult BlimpPluginEncryptionState::newStorageContainer(int64_t contai
     container_encryption.SetKeyWithIV(container_key.data(), container_key.size(), container_iv.data());
 
     return BLIMP_PLUGIN_RESULT_OK;
+}
+
+BlimpPluginResult BlimpPluginEncryptionState::encrypt_file_chunk(BlimpFileChunk const& file_chunk)
+{
+    std::vector<CryptoPP::byte> enc_buffer = getFreeBuffer(in_buffer.size() + file_chunk.size);
+    auto const it_buffer = std::copy(in_buffer.begin(), in_buffer.end(), enc_buffer.begin());
+    if (file_chunk.data != nullptr) {
+        std::copy(file_chunk.data, file_chunk.data + file_chunk.size, it_buffer);
+        std::size_t const overflow = enc_buffer.size() % CryptoPP::AES::BLOCKSIZE;
+        in_buffer.assign(enc_buffer.begin() + (enc_buffer.size() - overflow), enc_buffer.end());
+        enc_buffer.resize(enc_buffer.size() - overflow);
+    } else {
+        in_buffer.clear();
+        std::size_t const padding = CryptoPP::AES::BLOCKSIZE - (enc_buffer.size() % CryptoPP::AES::BLOCKSIZE);
+        if ((padding != 0) && (padding != CryptoPP::AES::BLOCKSIZE)) {
+            enc_buffer.resize(enc_buffer.size() + padding);
+            pool.GenerateBlock(enc_buffer.data() + (enc_buffer.size() - padding), padding);
+        }
+    }
+
+    if (!enc_buffer.empty()) {
+        container_encryption.ProcessData(enc_buffer.data(), enc_buffer.data(), enc_buffer.size());
+        out_available.emplace_back(std::move(enc_buffer));
+    }
+
+    return BLIMP_PLUGIN_RESULT_OK;
+}
+
+BlimpFileChunk BlimpPluginEncryptionState::get_encrypted_chunk()
+{
+    BlimpFileChunk ret{};
+    if (!out_available.empty()) {
+        busy_buffer = std::move(out_available.front());
+        out_available.pop_front();
+        ret.data = reinterpret_cast<char const*>(busy_buffer.data());
+        ret.size = busy_buffer.size();
+    }
+    return ret;
+}
+
+std::vector<CryptoPP::byte> BlimpPluginEncryptionState::getFreeBuffer(std::size_t s)
+{
+    if (out_free.empty()) {
+        return std::vector<CryptoPP::byte>(s, 0);
+    } else {
+        std::vector<CryptoPP::byte> ret = std::move(out_free.back());
+        out_free.pop_back();
+        ret.resize(s);
+        return ret;
+    }
 }

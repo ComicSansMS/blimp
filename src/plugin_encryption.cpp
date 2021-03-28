@@ -42,6 +42,11 @@ BlimpPluginInfo PluginEncryption::pluginInfo() const
     return m_encryption_plugin_api_info();
 }
 
+char const* PluginEncryption::getLastError()
+{
+    return m_encryption.get_last_error(m_encryption.state);
+}
+
 void PluginEncryption::setPassword(std::string_view password)
 {
     BlimpPluginEncryptionPassword const p{
@@ -52,7 +57,8 @@ void PluginEncryption::setPassword(std::string_view password)
     if (res != BLIMP_PLUGIN_RESULT_OK) {
         GHULBUS_THROW(Exceptions::PluginError{}
                       << Ghulbus::Exception_Info::filename(m_encryption_dll.location().string())
-                      << Exception_Info::Records::plugin_error_code(res),
+                      << Exception_Info::Records::plugin_error_code(res)
+                      << Exception_Info::Records::plugin_error_message(getLastError()),
                       "Error while setting encryption password");
     }
 }
@@ -63,7 +69,25 @@ void PluginEncryption::newStorageContainer(BlimpDB::StorageContainerId id)
     if (res != BLIMP_PLUGIN_RESULT_OK) {
         GHULBUS_THROW(Exceptions::PluginError{}
                       << Ghulbus::Exception_Info::filename(m_encryption_dll.location().string())
-                      << Exception_Info::Records::plugin_error_code(res),
+                      << Exception_Info::Records::plugin_error_code(res)
+                      << Exception_Info::Records::plugin_error_message(getLastError()),
                       "Error while switching encryption to new container");
     }
+}
+
+void PluginEncryption::encryptFileChunk(BlimpFileChunk chunk)
+{
+    BlimpPluginResult const res = m_encryption.encrypt_file_chunk(m_encryption.state, chunk);
+    if (res != BLIMP_PLUGIN_RESULT_OK) {
+        GHULBUS_THROW(Exceptions::PluginError{}
+                      << Ghulbus::Exception_Info::filename(m_encryption_dll.location().string())
+                      << Exception_Info::Records::plugin_error_code(res)
+                      << Exception_Info::Records::plugin_error_message(getLastError()),
+                      "Error while during data encryption");
+    }
+}
+
+BlimpFileChunk PluginEncryption::getEncryptedChunk()
+{
+    return m_encryption.get_encrypted_chunk(m_encryption.state);
 }
