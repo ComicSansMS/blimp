@@ -21,6 +21,9 @@ endif()
 
 option(BLIMP_BUILD_TESTS "Determines whether to build tests for blimp" ON)
 option(BLIMP_BUILD_PLUGINS "Determines whether to build blimp plugins" ON)
+if(BLIMP_BUILD_TESTS)
+    enable_testing()
+endif()
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(BlimpBuildBox QUIET)
@@ -191,8 +194,6 @@ if(WIN32)
 endif()
 
 if(BLIMP_BUILD_TESTS)
-    enable_testing()
-
     add_executable(test_blimp_ui
         ${PROJECT_SOURCE_DIR}/test/ui/filesize_to_string.t.cpp
     )
