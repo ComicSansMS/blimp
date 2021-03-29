@@ -20,6 +20,7 @@ if(MSVC)
 endif()
 
 option(BLIMP_BUILD_TESTS "Determines whether to build tests for blimp" ON)
+option(BLIMP_BUILD_PLUGINS "Determines whether to build blimp plugins" ON)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(BlimpBuildBox QUIET)
@@ -55,7 +56,9 @@ add_library(blimp_plugin_helper_cpp INTERFACE)
 target_link_libraries(blimp_plugin_helper_cpp INTERFACE blimp_plugin_sdk)
 target_sources(blimp_plugin_helper_cpp INTERFACE ${PROJECT_SOURCE_DIR}/sdk/blimp_plugin_helper_cpp.hpp)
 
-add_subdirectory(plugins)
+if(BLIMP_BUILD_PLUGINS)
+    add_subdirectory(plugins)
+endif()
 
 set(BLIMP_SOURCE_DIRECTORY ${PROJECT_SOURCE_DIR}/src)
 set(BLIMP_INCLUDE_DIRECTORY ${PROJECT_SOURCE_DIR}/src)

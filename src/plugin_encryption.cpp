@@ -87,7 +87,7 @@ void PluginEncryption::encryptFileChunk(BlimpFileChunk chunk)
     }
 }
 
-BlimpFileChunk PluginEncryption::getEncryptedChunk()
+BlimpFileChunk PluginEncryption::getProcessedChunk()
 {
-    return m_encryption.get_encrypted_chunk(m_encryption.state);
+    return m_encryption.get_processed_chunk(m_encryption.state);
 }

@@ -113,11 +113,11 @@ typedef struct BlimpPluginEncryption_Tag {
     BlimpPluginABI abi;
     BlimpPluginEncryptionStateHandle state;
     char const* (*get_last_error)(BlimpPluginEncryptionStateHandle state);
-    int32_t (*get_block_size)(BlimpPluginEncryptionStateHandle state);
     BlimpPluginResult (*set_password)(BlimpPluginEncryptionStateHandle state, BlimpPluginEncryptionPassword password);
     BlimpPluginResult (*new_storage_container)(BlimpPluginEncryptionStateHandle state, int64_t container_id);
     BlimpPluginResult (*encrypt_file_chunk)(BlimpPluginEncryptionStateHandle state, BlimpFileChunk chunk);
-    BlimpFileChunk (*get_encrypted_chunk)(BlimpPluginEncryptionStateHandle state);
+    BlimpPluginResult (*decrypt_file_chunk)(BlimpPluginEncryptionStateHandle state, BlimpFileChunk file_chunk);
+    BlimpFileChunk (*get_processed_chunk)(BlimpPluginEncryptionStateHandle state);
 } BlimpPluginEncryption;
 
 typedef BlimpPluginResult (*blimp_plugin_encryption_initialize_type)(BlimpKeyValueStore, BlimpPluginEncryption*);
