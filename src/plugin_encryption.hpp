@@ -32,6 +32,7 @@ public:
     void setPassword(std::string_view password);
     void newStorageContainer(BlimpDB::StorageContainerId id);
     void encryptFileChunk(BlimpFileChunk chunk);
+    void decryptFileChunk(BlimpFileChunk chunk);
     BlimpFileChunk getProcessedChunk();
 };
 

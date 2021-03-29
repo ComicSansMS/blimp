@@ -87,6 +87,18 @@ void PluginEncryption::encryptFileChunk(BlimpFileChunk chunk)
     }
 }
 
+void PluginEncryption::decryptFileChunk(BlimpFileChunk chunk)
+{
+    BlimpPluginResult const res = m_encryption.decrypt_file_chunk(m_encryption.state, chunk);
+    if (res != BLIMP_PLUGIN_RESULT_OK) {
+        GHULBUS_THROW(Exceptions::PluginError{}
+                      << Ghulbus::Exception_Info::filename(m_encryption_dll.location().string())
+                      << Exception_Info::Records::plugin_error_code(res)
+                      << Exception_Info::Records::plugin_error_message(getLastError()),
+                      "Error while during data encryption");
+    }
+}
+
 BlimpFileChunk PluginEncryption::getProcessedChunk()
 {
     return m_encryption.get_processed_chunk(m_encryption.state);

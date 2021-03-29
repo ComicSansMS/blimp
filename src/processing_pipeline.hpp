@@ -4,6 +4,7 @@
 #include <gbBase/Assert.hpp>
 
 #include <plugin_compression.hpp>
+#include <plugin_encryption.hpp>
 
 #include <fstream>
 #include <vector>
@@ -62,9 +63,11 @@ private:
     std::ofstream m_fout;
     std::vector<StorageLocation> m_locations;
     std::int64_t m_startOffset;
+    std::int64_t m_sizeCounter;
     std::int64_t m_partCounter;
 
     PluginCompression m_compression;
+    PluginEncryption m_encryption;
 public:
     explicit ProcessingPipeline(BlimpDB& blimpdb);
 

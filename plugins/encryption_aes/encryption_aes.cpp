@@ -257,31 +257,6 @@ BlimpPluginResult BlimpPluginEncryptionState::new_storage_container(int64_t cont
 
 BlimpPluginResult BlimpPluginEncryptionState::encrypt_file_chunk(BlimpFileChunk const& file_chunk)
 {
-    /*
-    std::vector<CryptoPP::byte> enc_buffer = getFreeBuffer(in_buffer.size() + file_chunk.size);
-    auto const it_buffer = std::copy(in_buffer.begin(), in_buffer.end(), enc_buffer.begin());
-    if (file_chunk.data != nullptr) {
-        std::copy(file_chunk.data, file_chunk.data + file_chunk.size, it_buffer);
-        std::size_t const overflow = enc_buffer.size() % CryptoPP::AES::BLOCKSIZE;
-        in_buffer.assign(enc_buffer.begin() + (enc_buffer.size() - overflow), enc_buffer.end());
-        enc_buffer.resize(enc_buffer.size() - overflow);
-    } else {
-        if (enc_buffer.size() != in_buffer.size()) { return BLIMP_PLUGIN_RESULT_INVALID_ARGUMENT; }
-        in_buffer.clear();
-        std::size_t const padding = CryptoPP::AES::BLOCKSIZE - (enc_buffer.size() % CryptoPP::AES::BLOCKSIZE);
-        enc_buffer.resize(enc_buffer.size() + padding);
-        pool.GenerateBlock(enc_buffer.data() + (enc_buffer.size() - padding), padding);
-        enc_buffer.back() &= 0xF0;
-        enc_buffer.back() |= static_cast<char>(padding - 1);
-    }
-
-    if (!enc_buffer.empty()) {
-        container_encryption.ProcessData(enc_buffer.data(), enc_buffer.data(), enc_buffer.size());
-        out_available.emplace_back(std::move(enc_buffer));
-    }
-
-    return BLIMP_PLUGIN_RESULT_OK;
-    */
     std::vector<CryptoPP::byte> enc_buffer = getFreeBuffer(in_buffer.size() + file_chunk.size);
     auto const it_buffer = std::copy(in_buffer.begin(), in_buffer.end(), enc_buffer.begin());
     if (file_chunk.data != nullptr) {
