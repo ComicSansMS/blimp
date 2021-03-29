@@ -185,9 +185,6 @@ set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT b
 add_executable(aws_tester src/aws_prototype.cpp)
 target_link_libraries(aws_tester PUBLIC aws-cpp-sdk-core aws-cpp-sdk-glacier cryptopp-static)
 
-add_executable(crypto_demo src/crypto/crypto_demo.cpp)
-target_link_libraries(crypto_demo PUBLIC cryptopp-static)
-
 if(WIN32)
     getQt5Dlls(Qt5::Widgets qt_DLLS)
     file(COPY ${qt_DLLS} ${QT5_ADDITIONAL_DLLS} DESTINATION ${PROJECT_BINARY_DIR})
