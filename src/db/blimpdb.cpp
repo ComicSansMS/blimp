@@ -78,6 +78,7 @@ BlimpDB::~BlimpDB() = default;      // needed for pimpl destruction
 
 void createBlimpPropertiesTable(sqlpp::sqlite3::connection& db)
 {
+    db.start_transaction();
     auto const prop_tab = blimpdb::BlimpProperties{};
     db.execute(blimpdb::table_layout::blimp_properties());
     db.execute(blimpdb::table_layout::plugin_kv_store());
@@ -97,6 +98,7 @@ void createBlimpPropertiesTable(sqlpp::sqlite3::connection& db)
 
     db(insert_into(prop_tab).set(prop_tab.id    = "version",
                                  prop_tab.value = std::to_string(BlimpVersion::version())));
+    db.commit_transaction();
 }
 
 void BlimpDB::createNewFileDatabase(std::string const& db_filename)
