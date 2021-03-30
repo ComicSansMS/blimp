@@ -7,6 +7,7 @@
 #include <plugin_encryption.hpp>
 
 #include <fstream>
+#include <memory>
 #include <vector>
 
 class BlimpDB;
@@ -60,16 +61,17 @@ public:
     };
 private:
     std::string m_current_file;
-    std::ofstream m_fout;
     std::vector<StorageLocation> m_locations;
     std::int64_t m_startOffset;
     std::int64_t m_sizeCounter;
     std::int64_t m_partCounter;
 
-    PluginCompression m_compression;
-    PluginEncryption m_encryption;
+    struct Pipeline;
+    std::unique_ptr<Pipeline> m_pipeline;
 public:
     explicit ProcessingPipeline(BlimpDB& blimpdb);
+
+    ~ProcessingPipeline();
 
     ProcessingPipeline(ProcessingPipeline const&) = delete;
     ProcessingPipeline& operator=(ProcessingPipeline const&) = delete;
