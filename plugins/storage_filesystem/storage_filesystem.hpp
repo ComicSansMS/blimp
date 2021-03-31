@@ -7,12 +7,9 @@
 
 extern "C" STORAGE_FILESYSTEM_EXPORT BlimpPluginInfo blimp_plugin_api_info();
 
-void initialize_storage(char const* target_path);
+extern "C" STORAGE_FILESYSTEM_EXPORT BlimpPluginResult blimp_plugin_storage_initialize(BlimpKeyValueStore kv_store,
+                                                                                       BlimpPluginStorage* plugin);
 
-void new_file();
-
-void add_file_data();
-
-void finish_file();
+extern "C" STORAGE_FILESYSTEM_EXPORT void blimp_plugin_storage_shutdown(BlimpPluginStorage* plugin);
 
 #endif

@@ -123,6 +123,20 @@ typedef struct BlimpPluginEncryption_Tag {
 typedef BlimpPluginResult (*blimp_plugin_encryption_initialize_type)(BlimpKeyValueStore, BlimpPluginEncryption*);
 typedef void (*blimp_plugin_encryption_shutdown_type)(BlimpPluginEncryption* plugin);
 
+struct BlimpPluginStorageState;
+typedef struct BlimpPluginStorageState* BlimpPluginStorageStateHandle;
+
+typedef struct BlimpPluginStorage_Tag {
+    BlimpPluginABI abi;
+    BlimpPluginStorageStateHandle state;
+    char const* (*get_last_error)(BlimpPluginEncryptionStateHandle state);
+    BlimpPluginResult (*new_storage_container)(BlimpPluginEncryptionStateHandle state, BlimpStorageLocation* out_location);
+    BlimpPluginResult (*store_file_chunk)(BlimpPluginEncryptionStateHandle state, BlimpFileChunk chunk);
+} BlimpPluginStorage;
+
+typedef BlimpPluginResult (*blimp_plugin_storage_initialize_type)(BlimpKeyValueStore, BlimpPluginStorage*);
+typedef void (*blimp_plugin_storage_shutdown_type)(BlimpPluginStorage* plugin);
+
 #ifdef __cplusplus
 }
 #endif
