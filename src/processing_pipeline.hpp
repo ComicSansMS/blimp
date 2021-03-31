@@ -82,6 +82,8 @@ public:
 
     void abortTransaction(TransactionGuard&& tg);
 
+    void finish();
+
 private:
     void addFileChunk(FileChunk const& chunk);
 };

@@ -12,6 +12,7 @@
 #include <boost/filesystem/path.hpp>
 
 #include <cstdio>
+#include <chrono>
 #include <vector>
 
 FileProcessor::FileProcessor()
@@ -39,6 +40,7 @@ void FileProcessor::startProcessing(BlimpDB::SnapshotId snapshot_id, std::vector
         std::size_t file_index = 0;
         std::vector<BlimpDB::FileElementId> snapshot_contents;
         blimpdb.startExternalSync();
+        auto const t0 = std::chrono::steady_clock::now();
         for (auto const& f : m_filesToProcess) {
             try {
                 // read file chunk
@@ -85,6 +87,11 @@ void FileProcessor::startProcessing(BlimpDB::SnapshotId snapshot_id, std::vector
             }
             ++file_index;
         }
+        m_processingPipeline->finish();
+        auto const t1 = std::chrono::steady_clock::now();
+        GHULBUS_LOG(Info, "Processing " << m_filesToProcess.size() << " file" <<
+                    ((m_filesToProcess.size() != 1) ? "s" : "") << " took " <<
+                    std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0) << " total.");
         GHULBUS_LOG(Debug, "Adding " << snapshot_contents.size() << " elements as snapshot contents");
         blimpdb.addSnapshotContents(snapshot_id, snapshot_contents, false);
         blimpdb.commitExternalSync();

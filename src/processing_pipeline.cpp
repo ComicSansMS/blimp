@@ -38,6 +38,8 @@ public:
     void pump(BlimpFileChunk chunk);
     void flushStage();
     std::size_t getByteCounter() const;
+    std::chrono::milliseconds getTimeTotal() const;
+    double getBandwidthMbps() const;
     void resetStats();
 private:
     void process(BlimpFileChunk chunk);
@@ -95,6 +97,18 @@ BlimpFileChunk PipelineStage::getProcessedChunk()
 std::size_t PipelineStage::getByteCounter() const
 {
     return m_byteCounter;
+}
+
+std::chrono::milliseconds PipelineStage::getTimeTotal() const
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>(m_timeTotal);
+}
+
+double PipelineStage::getBandwidthMbps() const
+{
+    auto const mbytes_processed = static_cast<double>(m_byteCounter) / (1024.0 * 1024.0);
+    auto const seconds_spent = static_cast<double>(getTimeTotal().count()) / 1000.0;
+    return mbytes_processed / seconds_spent;
 }
 
 void PipelineStage::resetStats()
@@ -211,4 +225,14 @@ std::vector<StorageLocation> ProcessingPipeline::commitTransaction(TransactionGu
 void ProcessingPipeline::abortTransaction(TransactionGuard&& tg)
 {
     tg.m_requiresAbort = false;
+}
+
+void ProcessingPipeline::finish()
+{
+    m_pipeline->flush();
+    GHULBUS_LOG(Debug, "Processing stastics per pipeline stage:");
+    for (std::size_t i = 0, i_end = m_pipeline->m_stages.size(); i != i_end; ++i) {
+        auto const& s = m_pipeline->m_stages[i];
+        GHULBUS_LOG(Debug, "Stage #" << i << ": " << s.getTimeTotal() << " (" << s.getBandwidthMbps() << "Mbps)");
+    }
 }
