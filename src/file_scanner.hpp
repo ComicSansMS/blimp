@@ -75,8 +75,6 @@ private:
     void indexFilesRecursively(boost::filesystem::path const& file_to_scan);
 
     Hash calculateHash(FileInfo const& file_info);
-
-    void processFile(FileInfo const& file_info);
 };
 
 #endif

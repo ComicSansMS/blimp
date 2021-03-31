@@ -10,8 +10,6 @@
 #include <rijndael.h>
 #include <aes.h>
 
-#include <storage_plugin.hpp>
-
 #pragma warning(push)
 #pragma warning(disable: 4242)
 #include <QApplication>
@@ -51,9 +49,6 @@ int main(int argc, char* argv[])
     //aes_encrypt.SetKey(key, sizeof(key));
     //byte b[CryptoPP::AESEncryption::BLOCKSIZE] = "BLA";
     //aes_encrypt.ProcessBlock(b);
-
-    StoragePlugin plug("storage_filesystem");
-    GHULBUS_LOG(Info, "Plugin loaded " << plug.plugin_name());
 
     Aws::SDKOptions opt;
     Aws::InitAPI(opt);

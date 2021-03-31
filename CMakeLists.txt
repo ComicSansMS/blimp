@@ -71,7 +71,6 @@ set(BLIMP_SOURCE_FILES
     ${BLIMP_SOURCE_DIRECTORY}/file_bundling.cpp
     ${BLIMP_SOURCE_DIRECTORY}/file_hash.cpp
     ${BLIMP_SOURCE_DIRECTORY}/file_io.cpp
-    ${BLIMP_SOURCE_DIRECTORY}/storage_plugin.cpp
     ${BLIMP_SOURCE_DIRECTORY}/plugin_common.cpp
     ${BLIMP_SOURCE_DIRECTORY}/plugin_compression.cpp
     ${BLIMP_SOURCE_DIRECTORY}/plugin_encryption.cpp
@@ -93,11 +92,7 @@ set(BLIMP_HEADER_FILES
     ${BLIMP_SOURCE_DIRECTORY}/plugin_encryption.hpp
     ${BLIMP_SOURCE_DIRECTORY}/plugin_key_value_store.hpp
     ${BLIMP_SOURCE_DIRECTORY}/processing_pipeline.hpp
-    ${BLIMP_SOURCE_DIRECTORY}/storage.hpp
-    ${BLIMP_SOURCE_DIRECTORY}/storage_aws_glacier.hpp
-    ${BLIMP_SOURCE_DIRECTORY}/storage_filesystem.hpp
     ${BLIMP_SOURCE_DIRECTORY}/storage_location.hpp
-    ${BLIMP_SOURCE_DIRECTORY}/storage_plugin.hpp
     ${BLIMP_SOURCE_DIRECTORY}/uuid.hpp
     ${BLIMP_SOURCE_DIRECTORY}/version.hpp
     ${BLIMP_SOURCE_DIRECTORY}/worker_pool.hpp
