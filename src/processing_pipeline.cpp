@@ -28,8 +28,10 @@ private:
     Ghulbus::AnyInvocable<void(BlimpFileChunk)> m_funcProcess;
     Ghulbus::AnyInvocable<BlimpFileChunk()> m_funcGetChunk;
     std::size_t m_byteCounter;
+    std::size_t m_byteCounterCurrentContainer;
     std::chrono::steady_clock::duration m_timeLastPump;
     std::chrono::steady_clock::duration m_timeTotal;
+    std::chrono::steady_clock::duration m_timeTotalCurrentContainer;
 public:
     PipelineStage(Ghulbus::AnyInvocable<void(BlimpFileChunk)> process_func,
                   Ghulbus::AnyInvocable<BlimpFileChunk()> get_func);
@@ -40,9 +42,12 @@ public:
     void pump(BlimpFileChunk chunk);
     void flushStage();
     std::size_t getByteCounter() const;
+    std::size_t getByteCounterCurrentContainer() const;
     std::chrono::milliseconds getTimeTotal() const;
+    std::chrono::milliseconds getTimeTotalCurrentContainer() const;
     double getBandwidthMbps() const;
     void resetStats();
+    void resetStatsCurrentContainer();
 private:
     void process(BlimpFileChunk chunk);
     BlimpFileChunk getProcessedChunk();
@@ -51,8 +56,10 @@ private:
 PipelineStage::PipelineStage(Ghulbus::AnyInvocable<void(BlimpFileChunk)> process_func,
                              Ghulbus::AnyInvocable<BlimpFileChunk()> get_func)
     :m_downstream(nullptr), m_funcProcess(std::move(process_func)), m_funcGetChunk(std::move(get_func)),
-     m_byteCounter(0), m_timeLastPump(std::chrono::steady_clock::duration::zero()),
-     m_timeTotal(std::chrono::steady_clock::duration::zero())
+     m_byteCounter(0), m_byteCounterCurrentContainer(0),
+     m_timeLastPump(std::chrono::steady_clock::duration::zero()),
+     m_timeTotal(std::chrono::steady_clock::duration::zero()),
+     m_timeTotalCurrentContainer(std::chrono::steady_clock::duration::zero())
 {}
 
 PipelineStage::~PipelineStage()
@@ -68,12 +75,14 @@ void PipelineStage::setDownstream(PipelineStage& downstream)
 void PipelineStage::pump(BlimpFileChunk chunk)
 {
     m_byteCounter += chunk.size;
+    m_byteCounterCurrentContainer += chunk.size;
     auto const t0 = std::chrono::steady_clock::now();
     process(chunk);
     auto const t1 = std::chrono::steady_clock::now();
     auto const dt = t1 - t0;
     m_timeLastPump = dt;
     m_timeTotal += dt;
+    m_timeTotalCurrentContainer += dt;
     if (m_downstream) {
         for(BlimpFileChunk c = getProcessedChunk(); c.data != nullptr; c = getProcessedChunk()) {
             m_downstream->pump(c);
@@ -101,9 +110,19 @@ std::size_t PipelineStage::getByteCounter() const
     return m_byteCounter;
 }
 
+std::size_t PipelineStage::getByteCounterCurrentContainer() const
+{
+    return m_byteCounterCurrentContainer;
+}
+
 std::chrono::milliseconds PipelineStage::getTimeTotal() const
 {
     return std::chrono::duration_cast<std::chrono::milliseconds>(m_timeTotal);
+}
+
+std::chrono::milliseconds PipelineStage::getTimeTotalCurrentContainer() const
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>(m_timeTotalCurrentContainer);
 }
 
 double PipelineStage::getBandwidthMbps() const
@@ -116,8 +135,16 @@ double PipelineStage::getBandwidthMbps() const
 void PipelineStage::resetStats()
 {
     m_byteCounter = 0;
+    m_byteCounterCurrentContainer = 0;
     m_timeLastPump = std::chrono::steady_clock::duration::zero();
     m_timeTotal = std::chrono::steady_clock::duration::zero();
+    m_timeTotalCurrentContainer = std::chrono::steady_clock::duration::zero();
+}
+
+void PipelineStage::resetStatsCurrentContainer()
+{
+    m_byteCounterCurrentContainer = 0;
+    m_timeTotalCurrentContainer = std::chrono::steady_clock::duration::zero();
 }
 
 struct ProcessingPipeline::Pipeline {
@@ -129,6 +156,7 @@ struct ProcessingPipeline::Pipeline {
 
     Pipeline(BlimpDB& blimpdb);
 
+    void resetStatsCurrentContainer();
     void flush();
 };
 
@@ -155,6 +183,13 @@ void ProcessingPipeline::Pipeline::flush()
     }
 }
 
+void ProcessingPipeline::Pipeline::resetStatsCurrentContainer()
+{
+    for (auto& s : m_stages) {
+        s.resetStatsCurrentContainer();
+    }
+}
+
 ProcessingPipeline::ProcessingPipeline(BlimpDB& blimpdb)
     :m_startOffset(0), m_sizeCounter(0), m_partCounter(0),
      m_pipeline(std::make_unique<Pipeline>(blimpdb)), m_currentContainerFull(true), m_currentContainerId{ .i = 0 }
@@ -167,6 +202,7 @@ void ProcessingPipeline::newStorageContainer(StorageContainerId const& container
 {
     m_pipeline->m_storage.newStorageContainer(container_id);
     m_pipeline->m_encryption.newStorageContainer(container_id);
+    m_pipeline->resetStatsCurrentContainer();
 
     m_startOffset = 0;
     m_sizeCounter = 0;
@@ -191,7 +227,7 @@ ProcessingPipeline::ContainerStatus ProcessingPipeline::addFileChunk(FileChunk c
     BlimpFileChunk blimp_chunk{ .data = chunk.getData(), .size = static_cast<int64_t>(chunk.getUsedSize()) };
 
     m_pipeline->m_stages.front().pump(blimp_chunk);
-    if (m_pipeline->m_stages.back().getByteCounter() > g_containerSizeLimit) {
+    if (m_pipeline->m_stages.back().getByteCounterCurrentContainer() > g_containerSizeLimit) {
         m_pipeline->flush();
         m_locations.push_back(StorageLocation{ .container_id = m_currentContainerId,
                                                .offset = m_startOffset,
