@@ -39,7 +39,7 @@ namespace blimpdb
             const T& operator()() const { return location; }
           };
       };
-      using _traits = sqlpp::make_traits<sqlpp::text, sqlpp::tag::require_insert>;
+      using _traits = sqlpp::make_traits<sqlpp::text, sqlpp::tag::can_be_null>;
     };
   } // namespace StorageContainers_
 

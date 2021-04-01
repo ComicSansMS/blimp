@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.14)
 
 project(blimp_plugin_storage_filesystem)
 
+set(Boost_USE_STATIC_LIBS ON)
+find_package(Boost REQUIRED filesystem system)
+
 option(BLIMP_PLUGIN_BUILD_STORAGE_FILESYSTEM_TESTS "Determines whether to build tests for the filesystem storage plugin" ON)
 
 include(GenerateExportHeader)
@@ -16,6 +19,7 @@ generate_export_header(storage_filesystem
 )
 target_sources(storage_filesystem PRIVATE ${PROJECT_BINARY_DIR}/storage_filesystem_export.h)
 target_include_directories(storage_filesystem PRIVATE ${PROJECT_SOURCE_DIR} ${PROJECT_BINARY_DIR})
+target_link_libraries(storage_filesystem PRIVATE Boost::disable_autolinking Boost::filesystem Boost::system)
 target_link_libraries(storage_filesystem PRIVATE blimp_plugin_sdk blimp_plugin_helper_cpp)
 
 if(BLIMP_PLUGIN_BUILD_STORAGE_FILESYSTEM_TESTS)

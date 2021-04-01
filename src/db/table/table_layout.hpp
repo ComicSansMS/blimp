@@ -116,13 +116,16 @@ inline constexpr char const* snapshot_contents()
 /** A list of all containers in storage.
  * A container stores a fixed amount of data. Multiple files may share a container and a single file may
  * be split across multiple containers.
+ * A storage container may be created without a location, but as soon as it's committed to storage, the location
+ * will be filled in. A storage container that is not currently part of an open transaction and has a NULL location
+ * nonetheless is considered abandoned and will be garbage-collected eventually.
  */
 inline constexpr char const* storage_containers()
 {
     return R"(
         CREATE TABLE storage_containers (
             container_id    INTEGER PRIMARY KEY,
-            location        TEXT    UNIQUE NOT NULL
+            location        TEXT    UNIQUE
         );)";
 }
 

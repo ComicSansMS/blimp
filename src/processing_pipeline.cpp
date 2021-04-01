@@ -2,22 +2,24 @@
 
 #include <file_chunk.hpp>
 #include <file_hash.hpp>
+#include <storage_container.hpp>
 #include <storage_location.hpp>
 
 #include <plugin_common.hpp>
+#include <plugin_compression.hpp>
+#include <plugin_encryption.hpp>
+#include <plugin_storage.hpp>
+
 #include <blimp_plugin_sdk.h>
 
 #include <gbBase/Assert.hpp>
 #include <gbBase/AnyInvocable.hpp>
 #include <gbBase/Log.hpp>
 
-#include <boost/filesystem.hpp>
-
 #include <chrono>
 
 namespace {
-    boost::filesystem::path g_basePath = "./test_storage";
-    constexpr int64_t g_sizeLimit = (64 << 20);
+constexpr std::size_t g_containerSizeLimit = (100 << 20);
 }
 
 class PipelineStage {
@@ -118,22 +120,10 @@ void PipelineStage::resetStats()
     m_timeTotal = std::chrono::steady_clock::duration::zero();
 }
 
-
-std::string outPath()
-{
-    std::size_t i = 0;
-    boost::filesystem::path p;
-    do {
-        p = g_basePath / (std::string{ "s" } + std::to_string(i));
-        ++i;
-    } while (boost::filesystem::exists(p));
-    return p.generic_string();
-}
-
 struct ProcessingPipeline::Pipeline {
     PluginCompression m_compression;
     PluginEncryption m_encryption;
-    std::ofstream m_fout;
+    PluginStorage m_storage;
 
     std::vector<PipelineStage> m_stages;
 
@@ -143,14 +133,16 @@ struct ProcessingPipeline::Pipeline {
 };
 
 ProcessingPipeline::Pipeline::Pipeline(BlimpDB& blimpdb)
-    :m_compression(blimpdb, "compression_zlib"), m_encryption(blimpdb, "encryption_aes")
+    :m_compression(blimpdb, "compression_zlib"), m_encryption(blimpdb, "encryption_aes"),
+     m_storage(blimpdb, "storage_filesystem")
 {
     m_encryption.setPassword("batteryhorsestaples");
+    m_storage.setBaseLocation("./test_storage");
 
     m_stages.reserve(3);
     m_stages.emplace_back([this](BlimpFileChunk c) { m_compression.compressFileChunk(c); }, [this]() -> BlimpFileChunk { return m_compression.getCompressedChunk(); });
     m_stages.emplace_back([this](BlimpFileChunk c) { m_encryption.encryptFileChunk(c); }, [this]() -> BlimpFileChunk { return m_encryption.getProcessedChunk(); });
-    m_stages.emplace_back([this](BlimpFileChunk c) { if (c.data) { m_fout.write(c.data, c.size); } }, [this]() -> BlimpFileChunk { return {}; });
+    m_stages.emplace_back([this](BlimpFileChunk c) { m_storage.storeFileChunk(c); }, []() -> BlimpFileChunk { return {}; });
     for (std::size_t i = 0, i_end = m_stages.size() - 1; i != i_end; ++i) {
         m_stages[i].setDownstream(m_stages[i+1]);
     }
@@ -165,14 +157,22 @@ void ProcessingPipeline::Pipeline::flush()
 
 ProcessingPipeline::ProcessingPipeline(BlimpDB& blimpdb)
     :m_startOffset(0), m_sizeCounter(0), m_partCounter(0),
-     m_pipeline(std::make_unique<Pipeline>(blimpdb))
+     m_pipeline(std::make_unique<Pipeline>(blimpdb)), m_currentContainerFull(true), m_currentContainerId{ .i = 0 }
 {
-    if (!boost::filesystem::is_directory(g_basePath)) {
-        boost::filesystem::create_directory(g_basePath);
-    }
 }
 
 ProcessingPipeline::~ProcessingPipeline() = default;
+
+void ProcessingPipeline::newStorageContainer(StorageContainerId const& container_id)
+{
+    m_pipeline->m_storage.newStorageContainer(container_id);
+    m_pipeline->m_encryption.newStorageContainer(container_id);
+
+    m_startOffset = 0;
+    m_sizeCounter = 0;
+    m_currentContainerFull = false;
+    m_currentContainerId = container_id;
+}
 
 ProcessingPipeline::TransactionGuard ProcessingPipeline::startNewContentTransaction(Hash const& data_hash)
 {
@@ -180,34 +180,31 @@ ProcessingPipeline::TransactionGuard ProcessingPipeline::startNewContentTransact
     m_partCounter = 0;
     m_startOffset += m_sizeCounter;
     m_sizeCounter = 0;
-    if (!m_pipeline->m_fout || (!m_pipeline->m_fout.is_open())) {
-        auto const p = outPath();
-        m_pipeline->m_fout = std::ofstream(p, std::ios_base::binary);
-        m_current_file = p;
-        m_pipeline->m_encryption.newStorageContainer(BlimpDB::StorageContainerId{ .i = 42 });
-    }
+
     return TransactionGuard(this);
 }
 
-void ProcessingPipeline::addFileChunk(FileChunk const& chunk)
+ProcessingPipeline::ContainerStatus ProcessingPipeline::addFileChunk(FileChunk const& chunk)
 {
+    if (m_currentContainerFull) { return ContainerStatus::Full; }
     m_sizeCounter += chunk.getUsedSize();
     BlimpFileChunk blimp_chunk{ .data = chunk.getData(), .size = static_cast<int64_t>(chunk.getUsedSize()) };
 
     m_pipeline->m_stages.front().pump(blimp_chunk);
-    if (m_pipeline->m_stages.back().getByteCounter() > g_sizeLimit) {
+    if (m_pipeline->m_stages.back().getByteCounter() > g_containerSizeLimit) {
         m_pipeline->flush();
-        m_locations.push_back(StorageLocation{ .location = m_current_file,
+        m_locations.push_back(StorageLocation{ .container_id = m_currentContainerId,
                                                .offset = m_startOffset,
                                                .size = m_sizeCounter,
                                                .part_number = m_partCounter });
-        auto const p = outPath();
-        m_pipeline->m_fout = std::ofstream(p, std::ios_base::binary);
-        m_current_file = p;
-        m_startOffset = 0;
-        m_sizeCounter = 0;
+        BlimpStorageContainerLocation container_location = m_pipeline->m_storage.finalizeStorageContainer();
+        m_lastContainerLocation = StorageContainerLocation{ .l = container_location.location };
         ++m_partCounter;
+        m_currentContainerFull = true;
+        m_currentContainerId = StorageContainerId{ .i = 0 };
+        return ContainerStatus::Full;
     }
+    return ContainerStatus::Ok;
 }
 
 std::vector<StorageLocation> ProcessingPipeline::commitTransaction(TransactionGuard&& tg)
@@ -215,7 +212,7 @@ std::vector<StorageLocation> ProcessingPipeline::commitTransaction(TransactionGu
     // flush compression
     m_pipeline->m_stages.front().flushStage();
     tg.m_requiresAbort = false;
-    m_locations.push_back(StorageLocation{ .location = m_current_file,
+    m_locations.push_back(StorageLocation{ .container_id = m_currentContainerId,
                                            .offset = m_startOffset,
                                            .size = m_sizeCounter,
                                            .part_number = m_partCounter });
@@ -229,10 +226,20 @@ void ProcessingPipeline::abortTransaction(TransactionGuard&& tg)
 
 void ProcessingPipeline::finish()
 {
-    m_pipeline->flush();
+    if (m_currentContainerId.i != 0) {
+        m_pipeline->flush();
+        BlimpStorageContainerLocation container_location = m_pipeline->m_storage.finalizeStorageContainer();
+        m_currentContainerId = StorageContainerId{ 0 };
+        m_lastContainerLocation = StorageContainerLocation{ .l = container_location.location };
+    }
     GHULBUS_LOG(Debug, "Processing stastics per pipeline stage:");
     for (std::size_t i = 0, i_end = m_pipeline->m_stages.size(); i != i_end; ++i) {
         auto const& s = m_pipeline->m_stages[i];
         GHULBUS_LOG(Debug, "Stage #" << i << ": " << s.getTimeTotal() << " (" << s.getBandwidthMbps() << "Mbps)");
     }
+}
+
+StorageContainerLocation ProcessingPipeline::getLastContainerLocation() const
+{
+    return m_lastContainerLocation;
 }

@@ -56,11 +56,9 @@ typedef enum BlimpConfigurationType_Tag {
     BLIMP_CONFIGURATION_TYPE_DIRECTORY_PATH,
 } BlimpConfigurationType;
 
-typedef struct BlimpStorageLocation_Tag {
+typedef struct BlimpStorageContainerLocation_Tag {
     char const* location;
-    int64_t offset;
-    int64_t size;
-} BlimpStorageLocation;
+} BlimpStorageContainerLocation;
 
 typedef struct BlimpFileChunk_Tag {
     char const* data;
@@ -129,9 +127,12 @@ typedef struct BlimpPluginStorageState* BlimpPluginStorageStateHandle;
 typedef struct BlimpPluginStorage_Tag {
     BlimpPluginABI abi;
     BlimpPluginStorageStateHandle state;
-    char const* (*get_last_error)(BlimpPluginEncryptionStateHandle state);
-    BlimpPluginResult (*new_storage_container)(BlimpPluginEncryptionStateHandle state, BlimpStorageLocation* out_location);
-    BlimpPluginResult (*store_file_chunk)(BlimpPluginEncryptionStateHandle state, BlimpFileChunk chunk);
+    char const* (*get_last_error)(BlimpPluginStorageStateHandle state);
+    BlimpPluginResult (*set_base_location)(BlimpPluginStorageStateHandle state, char const* path);
+    BlimpPluginResult (*new_storage_container)(BlimpPluginStorageStateHandle state, int64_t container_id);
+    BlimpPluginResult (*finalize_storage_container)(BlimpPluginStorageStateHandle state,
+                                                    BlimpStorageContainerLocation* out_location);
+    BlimpPluginResult (*store_file_chunk)(BlimpPluginStorageStateHandle state, BlimpFileChunk chunk);
 } BlimpPluginStorage;
 
 typedef BlimpPluginResult (*blimp_plugin_storage_initialize_type)(BlimpKeyValueStore, BlimpPluginStorage*);

@@ -1,8 +1,9 @@
 #ifndef BLIMP_INCLUDE_GUARD_PLUGIN_ENCRYPTION_HPP
 #define BLIMP_INCLUDE_GUARD_PLUGIN_ENCRYPTION_HPP
 
+#include <storage_container.hpp>
+
 #include <blimp_plugin_sdk.h>
-#include <db/blimpdb.hpp>
 
 #include <boost/dll/shared_library.hpp>
 
@@ -30,7 +31,7 @@ public:
 
     char const* getLastError();
     void setPassword(std::string_view password);
-    void newStorageContainer(BlimpDB::StorageContainerId id);
+    void newStorageContainer(StorageContainerId id);
     void encryptFileChunk(BlimpFileChunk chunk);
     void decryptFileChunk(BlimpFileChunk chunk);
     BlimpFileChunk getProcessedChunk();

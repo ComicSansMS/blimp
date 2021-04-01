@@ -63,7 +63,7 @@ void PluginEncryption::setPassword(std::string_view password)
     }
 }
 
-void PluginEncryption::newStorageContainer(BlimpDB::StorageContainerId id)
+void PluginEncryption::newStorageContainer(StorageContainerId id)
 {
     BlimpPluginResult const res = m_encryption.new_storage_container(m_encryption.state, id.i);
     if (res != BLIMP_PLUGIN_RESULT_OK) {

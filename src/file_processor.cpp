@@ -40,6 +40,8 @@ void FileProcessor::startProcessing(BlimpDB::SnapshotId snapshot_id, std::vector
         std::size_t file_index = 0;
         std::vector<BlimpDB::FileElementId> snapshot_contents;
         blimpdb.startExternalSync();
+        StorageContainerId current_container = blimpdb.newStorageContainer();
+        m_processingPipeline->newStorageContainer(current_container);
         auto const t0 = std::chrono::steady_clock::now();
         for (auto const& f : m_filesToProcess) {
             try {
@@ -72,7 +74,15 @@ void FileProcessor::startProcessing(BlimpDB::SnapshotId snapshot_id, std::vector
                     bytes_read = 0;
                     while (fio.hasMoreChunks()) {
                         FileChunk const& c = fio.getNextChunk();
-                        transaction.addFileChunk(c);
+                        if (transaction.addFileChunk(c) == ProcessingPipeline::ContainerStatus::Full) {
+                            auto const new_container_id = blimpdb.newStorageContainer();
+                            m_processingPipeline->newStorageContainer(new_container_id);
+                            auto const container_location = m_processingPipeline->getLastContainerLocation();
+                            StorageContainer const container{ .id = current_container,
+                                                              .location = container_location };
+                            blimpdb.finalizeStorageContainer(container, false);
+                            current_container = new_container_id;
+                        }
                         bytes_read += c.getUsedSize();
                         emit processingUpdateFileProgress(bytes_read);
                         if (m_cancelProcessing.load()) { emit processingCanceled(); return; }
@@ -88,6 +98,9 @@ void FileProcessor::startProcessing(BlimpDB::SnapshotId snapshot_id, std::vector
             ++file_index;
         }
         m_processingPipeline->finish();
+        StorageContainer const container{ .id = current_container,
+                                          .location = m_processingPipeline->getLastContainerLocation() };
+        blimpdb.finalizeStorageContainer(container, false);
         auto const t1 = std::chrono::steady_clock::now();
         GHULBUS_LOG(Info, "Processing " << m_filesToProcess.size() << " file" <<
                     ((m_filesToProcess.size() != 1) ? "s" : "") << " took " <<

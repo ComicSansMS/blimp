@@ -432,23 +432,46 @@ BlimpDB::FileElementId BlimpDB::newFileElement(FileInfo const& finfo, FileConten
     }
 }
 
+StorageContainerId BlimpDB::newStorageContainer()
+{
+    /// @todo have this function return a transaction guard and refactor finalizeStorageContainer() accordingly
+    auto& db = m_pimpl->db;
+    auto const tab_storage_containers = blimpdb::StorageContainers{};
+    std::int64_t const container_id =
+        db(insert_into(tab_storage_containers).set(tab_storage_containers.location = sqlpp::null));
+    return StorageContainerId{ .i = container_id };
+}
+
+void BlimpDB::finalizeStorageContainer(StorageContainer const& storage_container, bool do_sync)
+{
+    auto& db = m_pimpl->db;
+    auto const tab_storage_containers = blimpdb::StorageContainers{};
+    if (do_sync) { db.start_transaction(); }
+    auto const r = db(select(tab_storage_containers.location)
+                      .from(tab_storage_containers)
+                      .where(tab_storage_containers.containerId == storage_container.id.i));
+    if (r.empty()) {
+        GHULBUS_THROW(Exceptions::DatabaseError(), "Trying to finalize a non-existent container.");
+    }
+    if (!r.front().location.is_null()) {
+        GHULBUS_THROW(Exceptions::DatabaseError(), "Trying to finalize a container that has already been finalized.");
+    }
+    db(update(tab_storage_containers).set(tab_storage_containers.location = storage_container.location.l)
+                                     .where(tab_storage_containers.containerId == storage_container.id.i));
+    if (do_sync) { db.commit_transaction(); }
+}
+
 void BlimpDB::newStorageElement(FileContentId const& content_id,
                                 std::span<StorageLocation const> const& storage_locations,
                                 bool do_sync)
 {
     auto& db = m_pimpl->db;
-    auto const tab_storage_containers = blimpdb::StorageContainers{};
     auto const tab_storage_inventory = blimpdb::StorageInventory{};
 
     if (do_sync) { db.start_transaction(); }
     for (auto const& l : storage_locations) {
-        auto const res = db(select(tab_storage_containers.containerId)
-                            .from(tab_storage_containers)
-                            .where(tab_storage_containers.location == l.location));
-        std::int64_t const container_id = (!res.empty()) ? res.front().containerId :
-            db(insert_into(tab_storage_containers).set(tab_storage_containers.location = l.location));
         db(insert_into(tab_storage_inventory).set(tab_storage_inventory.contentId = content_id.i,
-                                                  tab_storage_inventory.containerId = container_id,
+                                                  tab_storage_inventory.containerId = l.container_id.i,
                                                   tab_storage_inventory.offset = l.offset,
                                                   tab_storage_inventory.size = l.size,
                                                   tab_storage_inventory.partNumber = l.part_number));

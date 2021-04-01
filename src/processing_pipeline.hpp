@@ -1,12 +1,10 @@
 #ifndef BLIMP_INCLUDE_GUARD_PROCESSING_PIPELINE_HPP
 #define BLIMP_INCLUDE_GUARD_PROCESSING_PIPELINE_HPP
 
+#include <storage_container.hpp>
+
 #include <gbBase/Assert.hpp>
 
-#include <plugin_compression.hpp>
-#include <plugin_encryption.hpp>
-
-#include <fstream>
 #include <memory>
 #include <vector>
 
@@ -17,6 +15,11 @@ struct StorageLocation;
 
 class ProcessingPipeline {
 public:
+    enum class [[nodiscard]] ContainerStatus {
+        Ok,
+        Full
+    };
+
     class [[nodiscard]] TransactionGuard {
         friend class ProcessingPipeline;
     private:
@@ -53,18 +56,20 @@ public:
             }
         }
 
-        void addFileChunk(FileChunk const& chunk)
+        ContainerStatus addFileChunk(FileChunk const& chunk)
         {
             GHULBUS_PRECONDITION(m_requiresAbort);
-            m_parent->addFileChunk(chunk);
+            return m_parent->addFileChunk(chunk);
         }
     };
 private:
-    std::string m_current_file;
     std::vector<StorageLocation> m_locations;
     std::int64_t m_startOffset;
     std::int64_t m_sizeCounter;
     std::int64_t m_partCounter;
+    bool m_currentContainerFull;
+    StorageContainerId m_currentContainerId;
+    StorageContainerLocation m_lastContainerLocation;
 
     struct Pipeline;
     std::unique_ptr<Pipeline> m_pipeline;
@@ -76,16 +81,20 @@ public:
     ProcessingPipeline(ProcessingPipeline const&) = delete;
     ProcessingPipeline& operator=(ProcessingPipeline const&) = delete;
 
+    void newStorageContainer(StorageContainerId const& container_id);
+
     TransactionGuard startNewContentTransaction(Hash const& data_hash);
 
-    [[nodiscard]] std::vector<StorageLocation> commitTransaction(TransactionGuard&& tg);
+    std::vector<StorageLocation> commitTransaction(TransactionGuard&& tg);
 
     void abortTransaction(TransactionGuard&& tg);
 
     void finish();
 
+    StorageContainerLocation getLastContainerLocation() const;
+
 private:
-    void addFileChunk(FileChunk const& chunk);
+    ContainerStatus addFileChunk(FileChunk const& chunk);
 };
 
 #endif

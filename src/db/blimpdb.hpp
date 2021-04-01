@@ -2,6 +2,8 @@
 #define BLIMP_INCLUDE_GUARD_DB_BLIMPDB_HPP
 
 #include <file_info.hpp>
+#include <storage_container.hpp>
+#include <storage_location.hpp>
 
 #include <blimp_plugin_sdk.h>
 
@@ -41,10 +43,6 @@ public:
     };
 
     struct FileContentId {
-        int64_t i;
-    };
-
-    struct StorageContainerId {
         int64_t i;
     };
 
@@ -89,6 +87,10 @@ public:
         newFileContent(FileInfo const& finfo, Hash const& hash, bool do_sync = true);
 
     FileElementId newFileElement(FileInfo const& finfo, FileContentId const& content_id, bool do_sync = true);
+
+    StorageContainerId newStorageContainer();
+
+    void finalizeStorageContainer(StorageContainer const& storage_container, bool do_sync = true);
 
     void newStorageElement(FileContentId const& content_id,
                            std::span<StorageLocation const> const& storage_locations,
