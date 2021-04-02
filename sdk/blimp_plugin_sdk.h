@@ -37,6 +37,7 @@ typedef struct BlimpPluginInfo_Tag {
     BlimpUUID uuid;
     char const* name;
     char const* description;
+    struct BlimpPluginInfo_Tag* next;
 } BlimpPluginInfo;
 
 typedef BlimpPluginInfo(*blimp_plugin_api_info_type)();
