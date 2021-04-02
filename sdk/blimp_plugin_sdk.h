@@ -87,7 +87,8 @@ typedef struct BlimpPluginCompression_Tag {
     BlimpPluginCompressionStateHandle state;
     char const* (*get_last_error)(BlimpPluginCompressionStateHandle state);
     BlimpPluginResult (*compress_file_chunk)(BlimpPluginCompressionStateHandle state, BlimpFileChunk chunk);
-    BlimpFileChunk (*get_compressed_chunk)(BlimpPluginCompressionStateHandle state);
+    BlimpPluginResult (*decompress_file_chunk)(BlimpPluginCompressionStateHandle state, BlimpFileChunk chunk);
+    BlimpFileChunk (*get_processed_chunk)(BlimpPluginCompressionStateHandle state);
 } BlimpPluginCompression;
 
 typedef BlimpPluginResult (*blimp_plugin_compression_initialize_type)(BlimpKeyValueStore, BlimpPluginCompression*);

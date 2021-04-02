@@ -19,6 +19,7 @@ struct ErrorStrings {
 struct Buffer {
     std::vector<Bytef> b;
     static constexpr size_t buffer_size = (1 << 20);
+    static_assert(buffer_size < std::numeric_limits<uInt>::max());
 
     Buffer()
     {
@@ -47,13 +48,16 @@ struct Buffer {
 }   // anonymous namespace
 
 struct BlimpPluginCompressionState {
-    z_stream zs;
-    Buffer buffer;
+    z_stream zs_compress;
+    z_stream zs_decompress;
+    Buffer compression_buffer;
+    Buffer decompression_buffer;
     std::deque<Buffer> available_buffers;
     Buffer public_buffer;
     std::vector<Buffer> free_buffers;
     char const* error_string;
     KeyValueStore kv_store;
+    bool decompression_is_finished;
 
     BlimpPluginCompressionState(BlimpKeyValueStore const& n_kv_store);
     ~BlimpPluginCompressionState();
@@ -64,7 +68,8 @@ struct BlimpPluginCompressionState {
     char const* get_last_error();
 
     BlimpPluginResult compress_file_chunk(BlimpFileChunk chunk);
-    BlimpFileChunk get_compressed_chunk();
+    BlimpPluginResult decompress_file_chunk(BlimpFileChunk chunk);
+    BlimpFileChunk get_processed_chunk();
 
     Buffer getFreeBuffer();
 };
@@ -97,9 +102,14 @@ BlimpPluginResult blimp_plugin_compress_file_chunk(BlimpPluginCompressionStateHa
     return state->compress_file_chunk(chunk);
 }
 
-BlimpFileChunk blimp_plugin_get_compressed_chunk(BlimpPluginCompressionStateHandle state)
+BlimpPluginResult blimp_plugin_decompress_file_chunk(BlimpPluginCompressionStateHandle state, BlimpFileChunk chunk)
 {
-    return state->get_compressed_chunk();
+    return state->decompress_file_chunk(chunk);
+}
+
+BlimpFileChunk blimp_plugin_get_processed_chunk(BlimpPluginCompressionStateHandle state)
+{
+    return state->get_processed_chunk();
 }
 
 BlimpPluginResult blimp_plugin_compression_initialize(BlimpKeyValueStore kv_store, BlimpPluginCompression* plugin)
@@ -115,7 +125,8 @@ BlimpPluginResult blimp_plugin_compression_initialize(BlimpKeyValueStore kv_stor
     }
     plugin->get_last_error = blimp_plugin_get_last_error;
     plugin->compress_file_chunk = blimp_plugin_compress_file_chunk;
-    plugin->get_compressed_chunk = blimp_plugin_get_compressed_chunk;
+    plugin->decompress_file_chunk = blimp_plugin_decompress_file_chunk;
+    plugin->get_processed_chunk = blimp_plugin_get_processed_chunk;
     return BLIMP_PLUGIN_RESULT_OK;
 }
 
@@ -125,23 +136,36 @@ void blimp_plugin_compression_shutdown(BlimpPluginCompression* plugin)
 }
 
 BlimpPluginCompressionState::BlimpPluginCompressionState(BlimpKeyValueStore const& n_kv_store)
-    :kv_store(n_kv_store)
+    :kv_store(n_kv_store), decompression_is_finished(false)
 {
     error_string = ErrorStrings::okay;
-    zs.opaque = nullptr;
-    zs.zalloc = nullptr;
-    zs.zfree = nullptr;
-    int res = deflateInit(&zs, Z_BEST_COMPRESSION);
+    zs_compress.opaque = nullptr;
+    zs_compress.zalloc = nullptr;
+    zs_compress.zfree = nullptr;
+    int res = deflateInit(&zs_compress, Z_BEST_COMPRESSION);
     if (res != Z_OK) {
         throw std::exception();
     }
-    zs.next_out = buffer.data_byte();
-    zs.avail_out = static_cast<uInt>(buffer.size());
+    zs_compress.next_out = compression_buffer.data_byte();
+    zs_compress.avail_out = static_cast<uInt>(compression_buffer.size());
+
+    zs_decompress.opaque = nullptr;
+    zs_decompress.zalloc = nullptr;
+    zs_decompress.zfree = nullptr;
+    zs_decompress.next_in = nullptr;
+    zs_decompress.avail_in = 0;
+    res = inflateInit(&zs_decompress);
+    if (res != Z_OK) {
+        throw std::exception();
+    }
+    zs_decompress.next_out = decompression_buffer.data_byte();
+    zs_decompress.avail_out = static_cast<uInt>(decompression_buffer.size());
 }
 
 BlimpPluginCompressionState::~BlimpPluginCompressionState()
 {
-    deflateEnd(&zs);
+    deflateEnd(&zs_compress);
+    inflateEnd(&zs_decompress);
 }
 
 char const* BlimpPluginCompressionState::get_last_error()
@@ -155,41 +179,83 @@ BlimpPluginResult BlimpPluginCompressionState::compress_file_chunk(BlimpFileChun
         return BLIMP_PLUGIN_RESULT_INVALID_ARGUMENT;
     }
     if (chunk.data != nullptr) {
-        if (reinterpret_cast<Bytef const*>(chunk.data) != zs.next_in) {
-            zs.next_in = reinterpret_cast<Bytef const*>(chunk.data);
-            zs.avail_in = static_cast<uInt>(chunk.size);
+        if (reinterpret_cast<Bytef const*>(chunk.data) != zs_compress.next_in) {
+            zs_compress.next_in = reinterpret_cast<Bytef const*>(chunk.data);
+            zs_compress.avail_in = static_cast<uInt>(chunk.size);
         }
-        while (zs.avail_in > 0) {
-            int const res = deflate(&zs, Z_NO_FLUSH);
+        while (zs_compress.avail_in > 0) {
+            int const res = deflate(&zs_compress, Z_NO_FLUSH);
             if (res != Z_OK) { error_string = ErrorStrings::compression_error; return BLIMP_PLUGIN_RESULT_FAILED; }
-            if (zs.avail_out == 0) {
-                available_buffers.emplace_back(std::move(buffer));
-                buffer = getFreeBuffer();
-                zs.next_out = buffer.data_byte();
-                zs.avail_out = static_cast<uInt>(buffer.size());
+            if (zs_compress.avail_out == 0) {
+                available_buffers.emplace_back(std::move(compression_buffer));
+                compression_buffer = getFreeBuffer();
+                zs_compress.next_out = compression_buffer.data_byte();
+                zs_compress.avail_out = static_cast<uInt>(compression_buffer.size());
             }
         }
     } else {
         // finalize and flush
         while (true) {
-            int const res = deflate(&zs, Z_FINISH);
+            int const res = deflate(&zs_compress, Z_FINISH);
             if ((res != Z_OK) && (res != Z_STREAM_END)) { error_string = ErrorStrings::compression_error; return BLIMP_PLUGIN_RESULT_FAILED; }
-            available_buffers.emplace_back(std::move(buffer));
-            buffer = getFreeBuffer();
+            available_buffers.emplace_back(std::move(compression_buffer));
+            compression_buffer = getFreeBuffer();
             if (res == Z_STREAM_END) { break; }
-            zs.next_out = buffer.data_byte();
-            zs.avail_out = static_cast<uInt>(buffer.size());
+            zs_compress.next_out = compression_buffer.data_byte();
+            zs_compress.avail_out = static_cast<uInt>(compression_buffer.size());
         }
-        available_buffers.back().b.resize(Buffer::buffer_size - zs.avail_out);
-        int const res = deflateReset(&zs);
+        available_buffers.back().b.resize(Buffer::buffer_size - zs_compress.avail_out);
+        int const res = deflateReset(&zs_compress);
         if (res != Z_OK) { error_string = ErrorStrings::compression_error; return BLIMP_PLUGIN_RESULT_FAILED; }
-        zs.next_out = buffer.data_byte();
-        zs.avail_out = static_cast<uInt>(buffer.size());
+        zs_compress.next_out = compression_buffer.data_byte();
+        zs_compress.avail_out = static_cast<uInt>(compression_buffer.size());
     }
     return BLIMP_PLUGIN_RESULT_OK;
 }
 
-BlimpFileChunk BlimpPluginCompressionState::get_compressed_chunk()
+BlimpPluginResult BlimpPluginCompressionState::decompress_file_chunk(BlimpFileChunk chunk)
+{
+    if (chunk.size > std::numeric_limits<uInt>::max()) {
+        return BLIMP_PLUGIN_RESULT_INVALID_ARGUMENT;
+    }
+    if (chunk.data != nullptr) {
+        if (decompression_is_finished) { return BLIMP_PLUGIN_RESULT_FAILED; }
+        zs_decompress.next_in = reinterpret_cast<Bytef const*>(chunk.data);
+        zs_decompress.avail_in = static_cast<uInt>(chunk.size);
+        while (zs_decompress.avail_in > 0) {
+            int const res = inflate(&zs_decompress, Z_NO_FLUSH);
+            if (res != Z_OK) {
+                if (res == Z_STREAM_END) {
+                    decompression_buffer.b.resize(decompression_buffer.b.size() - zs_decompress.avail_out);
+                    available_buffers.emplace_back(std::move(decompression_buffer));
+                    decompression_buffer = getFreeBuffer();
+                    zs_decompress.next_out = nullptr;
+                    zs_decompress.avail_out = 0;
+                    decompression_is_finished = true;
+                    break;
+                } else {
+                    return BLIMP_PLUGIN_RESULT_FAILED;
+                }
+            }
+            if (zs_decompress.avail_out == 0) {
+                available_buffers.emplace_back(std::move(decompression_buffer));
+                decompression_buffer = getFreeBuffer();
+                zs_decompress.next_out = decompression_buffer.data_byte();
+                zs_decompress.avail_out = static_cast<uInt>(decompression_buffer.size());
+            }
+        }
+    } else {
+        if (!decompression_is_finished) { return BLIMP_PLUGIN_RESULT_FAILED; }
+        int const res = inflateReset(&zs_decompress);
+        if (res != Z_OK) { return BLIMP_PLUGIN_RESULT_FAILED; }
+        zs_decompress.next_out = decompression_buffer.data_byte();
+        zs_decompress.avail_out = static_cast<uInt>(decompression_buffer.size());
+        decompression_is_finished = false;
+    }
+    return BLIMP_PLUGIN_RESULT_OK;
+}
+
+BlimpFileChunk BlimpPluginCompressionState::get_processed_chunk()
 {
     if (!available_buffers.empty()) {
         free_buffers.emplace_back(std::move(public_buffer));

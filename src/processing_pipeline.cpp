@@ -168,7 +168,7 @@ ProcessingPipeline::Pipeline::Pipeline(BlimpDB& blimpdb)
     m_storage.setBaseLocation("./test_storage");
 
     m_stages.reserve(3);
-    m_stages.emplace_back([this](BlimpFileChunk c) { m_compression.compressFileChunk(c); }, [this]() -> BlimpFileChunk { return m_compression.getCompressedChunk(); });
+    m_stages.emplace_back([this](BlimpFileChunk c) { m_compression.compressFileChunk(c); }, [this]() -> BlimpFileChunk { return m_compression.getProcessedChunk(); });
     m_stages.emplace_back([this](BlimpFileChunk c) { m_encryption.encryptFileChunk(c); }, [this]() -> BlimpFileChunk { return m_encryption.getProcessedChunk(); });
     m_stages.emplace_back([this](BlimpFileChunk c) { m_storage.storeFileChunk(c); }, []() -> BlimpFileChunk { return {}; });
     for (std::size_t i = 0, i_end = m_stages.size() - 1; i != i_end; ++i) {

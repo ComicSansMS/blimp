@@ -25,8 +25,10 @@ public:
 
     BlimpPluginInfo pluginInfo() const;
 
+    char const* getLastError();
     void compressFileChunk(BlimpFileChunk chunk);
-    BlimpFileChunk getCompressedChunk();
+    void decompressFileChunk(BlimpFileChunk chunk);
+    BlimpFileChunk getProcessedChunk();
 };
 
 #endif
