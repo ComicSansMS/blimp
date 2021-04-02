@@ -179,10 +179,8 @@ BlimpPluginResult BlimpPluginCompressionState::compress_file_chunk(BlimpFileChun
         return BLIMP_PLUGIN_RESULT_INVALID_ARGUMENT;
     }
     if (chunk.data != nullptr) {
-        if (reinterpret_cast<Bytef const*>(chunk.data) != zs_compress.next_in) {
-            zs_compress.next_in = reinterpret_cast<Bytef const*>(chunk.data);
-            zs_compress.avail_in = static_cast<uInt>(chunk.size);
-        }
+        zs_compress.next_in = reinterpret_cast<Bytef const*>(chunk.data);
+        zs_compress.avail_in = static_cast<uInt>(chunk.size);
         while (zs_compress.avail_in > 0) {
             int const res = deflate(&zs_compress, Z_NO_FLUSH);
             if (res != Z_OK) { error_string = ErrorStrings::compression_error; return BLIMP_PLUGIN_RESULT_FAILED; }

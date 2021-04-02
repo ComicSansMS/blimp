@@ -127,5 +127,50 @@ TEST_CASE("Plugin Compression zlib")
         c = compression.get_processed_chunk(compression.state);
         CHECK(!c.data);
         CHECK(std::equal(decompressed_text.begin(), decompressed_text.end(), text, text + sizeof(text)));
+
+        // decompress in smallest chunks
+        for (std::size_t i = 0; i < compressed_text.size(); ++i) {
+            res = compression.decompress_file_chunk(compression.state, BlimpFileChunk{ .data = compressed_text.data() + i, .size = 1 });
+            REQUIRE(res == BLIMP_PLUGIN_RESULT_OK);
+        }
+        res = compression.decompress_file_chunk(compression.state, BlimpFileChunk{ .data = nullptr, .size = 0 });
+        CHECK(res == BLIMP_PLUGIN_RESULT_OK);
+
+        decompressed_text.clear();
+        c = compression.get_processed_chunk(compression.state);
+        REQUIRE(c.data);
+        decompressed_text.assign(c.data, c.data + c.size);
+        c = compression.get_processed_chunk(compression.state);
+        CHECK(!c.data);
+        CHECK(std::equal(decompressed_text.begin(), decompressed_text.end(), text, text + sizeof(text)));
+
+        // compression is deterministic
+        res = compression.compress_file_chunk(compression.state,
+                                              BlimpFileChunk{ .data = text, .size = sizeof(text) });
+        CHECK(res == BLIMP_PLUGIN_RESULT_OK);
+        res = compression.compress_file_chunk(compression.state,
+                                              BlimpFileChunk{ .data = nullptr, .size = 0 });
+        CHECK(res == BLIMP_PLUGIN_RESULT_OK);
+
+        c = compression.get_processed_chunk(compression.state);
+        REQUIRE(c.data);
+        CHECK(std::equal(c.data, c.data + c.size, compressed_text.begin(), compressed_text.end()));
+        CHECK(compression.get_processed_chunk(compression.state).data == nullptr);
+
+        // compression in smaller chunks
+        int ii = 0;
+        for (std::size_t i = 0; i < sizeof(text); ++i) {
+            res = compression.compress_file_chunk(compression.state, BlimpFileChunk{ .data = text + i, .size = 1 });
+            REQUIRE(res == BLIMP_PLUGIN_RESULT_OK);
+            ++ii;
+        }
+        res = compression.compress_file_chunk(compression.state, BlimpFileChunk{ .data = nullptr, .size = 0 });
+        CHECK(res == BLIMP_PLUGIN_RESULT_OK);
+
+        c = compression.get_processed_chunk(compression.state);
+        REQUIRE(c.data);
+        CHECK(std::equal(c.data, c.data + c.size, compressed_text.begin(), compressed_text.end()));
+        c = compression.get_processed_chunk(compression.state);
+        CHECK(!c.data);
     }
 }
