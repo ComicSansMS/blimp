@@ -148,6 +148,8 @@ BlimpPluginCompressionState::BlimpPluginCompressionState(BlimpKeyValueStore cons
     }
     zs_compress.next_out = compression_buffer.data_byte();
     zs_compress.avail_out = static_cast<uInt>(compression_buffer.size());
+    zs_compress.next_in = nullptr;
+    zs_compress.avail_in = 0;
 
     zs_decompress.opaque = nullptr;
     zs_decompress.zalloc = nullptr;

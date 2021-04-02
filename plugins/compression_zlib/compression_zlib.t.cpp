@@ -58,13 +58,13 @@ TEST_CASE("Plugin Compression zlib")
         CHECK(api_info.type == BLIMP_PLUGIN_TYPE_COMPRESSION);
     }
 
+    BlimpKeyValueStoreState kv_store;
+    BlimpPluginCompression compression;
+    compression.abi = BLIMP_PLUGIN_ABI_1_0_0;
+    REQUIRE(blimp_plugin_compression_initialize(kv_store, &compression) == BLIMP_PLUGIN_RESULT_OK);
+
     SECTION("Compression Decompression")
     {
-        BlimpKeyValueStoreState kv_store;
-        BlimpPluginCompression compression;
-        compression.abi = BLIMP_PLUGIN_ABI_1_0_0;
-        REQUIRE(blimp_plugin_compression_initialize(kv_store, &compression) == BLIMP_PLUGIN_RESULT_OK);
-
         char const text[] = "Call me Ishmael. Some years ago -- never mind how long precisely -- having little "
             "or no money in my purse, and nothing particular to interest me on shore, I thought I would sail about a "
             "little and see the watery part of the world. It is a way I have of driving off the spleen, and "
@@ -172,5 +172,22 @@ TEST_CASE("Plugin Compression zlib")
         CHECK(std::equal(c.data, c.data + c.size, compressed_text.begin(), compressed_text.end()));
         c = compression.get_processed_chunk(compression.state);
         CHECK(!c.data);
+    }
+
+    SECTION("Empty Data")
+    {
+        BlimpPluginResult res;
+        res = compression.compress_file_chunk(compression.state, BlimpFileChunk{ .data = nullptr, .size = 0 });
+        CHECK(res == BLIMP_PLUGIN_RESULT_OK);
+
+        BlimpFileChunk c;
+        c = compression.get_processed_chunk(compression.state);
+        REQUIRE(c.data);
+
+        compression.decompress_file_chunk(compression.state, c);
+        c = compression.get_processed_chunk(compression.state);
+        REQUIRE(c.data);
+        CHECK(c.size == 0);
+        CHECK(c.data[0] == '\0');
     }
 }
