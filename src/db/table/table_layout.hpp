@@ -26,7 +26,7 @@ inline constexpr char const* plugin_kv_store()
     return R"(
         CREATE TABLE plugin_kv_store (
             store_key   TEXT      PRIMARY KEY,
-            value BLOB
+            value       BLOB
         );)";
 }
 
@@ -109,7 +109,8 @@ inline constexpr char const* snapshot_contents()
             snapshot_id INTEGER NOT NULL    REFERENCES snapshots(snapshot_id)
                                             ON UPDATE RESTRICT ON DELETE RESTRICT,
             file_id     INTEGER NOT NULL    REFERENCES file_elements(file_id)
-                                            ON UPDATE RESTRICT ON DELETE RESTRICT
+                                            ON UPDATE RESTRICT ON DELETE RESTRICT,
+            PRIMARY KEY (snapshot_id, file_id)
         );)";
 }
 
@@ -143,7 +144,8 @@ inline constexpr char const* storage_inventory()
             container_id    INTEGER NOT NULL    REFERENCES storage_containers(container_id) ON UPDATE RESTRICT ON DELETE RESTRICT,
             offset          INTEGER,
             size            INTEGER,
-            part_number     INTEGER
+            part_number     INTEGER,
+            PRIMARY KEY (content_id, container_id)
         );)";
 }
 }
