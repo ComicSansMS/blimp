@@ -71,6 +71,7 @@ BlimpDB::BlimpDB(std::string const& db_filename, OpenMode mode)
     } else if(mode == OpenMode::OpenExisting) {
         openExistingFileDatabase(db_filename);
     }
+    m_pimpl->db.execute("PRAGMA foreign_keys = ON");
     m_pimpl->db.execute("PRAGMA locking_mode = EXCLUSIVE");
 }
 
