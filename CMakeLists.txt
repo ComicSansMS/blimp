@@ -123,6 +123,8 @@ set(BLIMP_QT_SOURCE_FILES
     ${BLIMP_SOURCE_DIRECTORY}/ui/file_diff_model.cpp
     ${BLIMP_SOURCE_DIRECTORY}/ui/filesystem_model.cpp
     ${BLIMP_SOURCE_DIRECTORY}/ui/main_window.cpp
+    ${BLIMP_SOURCE_DIRECTORY}/ui/snapshot_browser.cpp
+    ${BLIMP_SOURCE_DIRECTORY}/ui/snapshot_contents_model.cpp
     ${BLIMP_SOURCE_DIRECTORY}/file_scanner.cpp
     ${BLIMP_SOURCE_DIRECTORY}/file_processor.cpp
 )
@@ -135,6 +137,8 @@ set(BLIMP_QT_MOC_HEADER_FILES
     ${BLIMP_INCLUDE_DIRECTORY}/ui/file_diff_model.hpp
     ${BLIMP_INCLUDE_DIRECTORY}/ui/filesystem_model.hpp
     ${BLIMP_INCLUDE_DIRECTORY}/ui/main_window.hpp
+    ${BLIMP_INCLUDE_DIRECTORY}/ui/snapshot_browser.hpp
+    ${BLIMP_INCLUDE_DIRECTORY}/ui/snapshot_contents_model.hpp
     ${BLIMP_INCLUDE_DIRECTORY}/file_scanner.hpp
     ${BLIMP_INCLUDE_DIRECTORY}/file_processor.hpp
 )

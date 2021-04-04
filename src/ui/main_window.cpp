@@ -4,6 +4,7 @@
 #include <ui/file_diff_model.hpp>
 #include <ui/filesize_to_string.hpp>
 #include <ui/filesystem_model.hpp>
+#include <ui/snapshot_browser.hpp>
 
 #include <db/blimpdb.hpp>
 
@@ -89,6 +90,24 @@ struct MainWindow::Pimpl
             layout->addStretch(2);
         }
     } welcomePage;
+
+    struct SnapshotBrowserPage {
+        QWidget* widget;
+        QBoxLayout* layout;
+        SnapshotBrowser* snapshotBrowser;
+        QPushButton* buttonCreateNewSnapshot;
+
+        SnapshotBrowserPage(QWidget* parent)
+            :widget(new QWidget(parent)),
+             layout(new QBoxLayout(QBoxLayout::Direction::TopToBottom, widget)),
+             snapshotBrowser(new SnapshotBrowser(widget)),
+             buttonCreateNewSnapshot(new QPushButton(widget))
+        {
+            layout->addWidget(snapshotBrowser);
+            buttonCreateNewSnapshot->setText("New Snapshot");
+            layout->addWidget(buttonCreateNewSnapshot);
+        }
+    } snapshotBrowserPage;
 
     struct ScanSelectPage {
         QWidget* widget;
@@ -235,8 +254,8 @@ struct MainWindow::Pimpl
 
     Pimpl(MainWindow* parent)
         :central(new QStackedWidget(parent)),
-         welcomePage(parent), scanSelectPage(parent), progressPage(parent), fileDiffPage(parent),
-         createSnapshotPage(parent),
+         welcomePage(parent), snapshotBrowserPage(parent), scanSelectPage(parent), progressPage(parent),
+         fileDiffPage(parent), createSnapshotPage(parent),
          numberOfFilesInIndex(0)
     {
     }
@@ -261,6 +280,11 @@ MainWindow::MainWindow()
     connect(m_pimpl->welcomePage.buttonOpen, &QPushButton::clicked,
             this, &MainWindow::onOpenDatabase);
     m_pimpl->central->addWidget(m_pimpl->welcomePage.widget);
+
+    // snapshot browser page
+    connect(m_pimpl->snapshotBrowserPage.buttonCreateNewSnapshot, &QPushButton::clicked,
+            this, &MainWindow::onNewSnapshot);
+    m_pimpl->central->addWidget(m_pimpl->snapshotBrowserPage.widget);
 
     // scan select page
     connect(m_pimpl->scanSelectPage.buttonScanSelected, &QPushButton::clicked,
@@ -395,6 +419,12 @@ void MainWindow::onOpenDatabase()
         return;
     }
 
+    m_pimpl->snapshotBrowserPage.snapshotBrowser->setData(*m_pimpl->blimpdb);
+    m_pimpl->central->setCurrentWidget(m_pimpl->snapshotBrowserPage.widget);
+}
+
+void MainWindow::onNewSnapshot()
+{
     m_pimpl->scanSelectPage.fsmodel->setCheckedFilePaths(m_pimpl->blimpdb->getUserSelection());
     statusBar()->show();
     m_pimpl->scanSelectPage.widget->setEnabled(true);

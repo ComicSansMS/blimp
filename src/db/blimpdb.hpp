@@ -103,6 +103,8 @@ public:
     void pluginStoreValue(BlimpPluginInfo const& plugin, char const* key, BlimpKeyValueStoreValue value);
     PluginStoreValue pluginRetrieveValue(BlimpPluginInfo const& plugin, char const* key);
 
+    std::vector<FileInfo> getFileElementsForSnapshot(SnapshotId const& snapshot_id);
+
     void startExternalSync();
     void commitExternalSync();
 private:

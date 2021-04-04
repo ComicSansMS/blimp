@@ -536,6 +536,29 @@ BlimpDB::PluginStoreValue BlimpDB::pluginRetrieveValue(BlimpPluginInfo const& pl
     return ret;
 }
 
+std::vector<FileInfo> BlimpDB::getFileElementsForSnapshot(SnapshotId const& snapshot_id)
+{
+    auto& db = m_pimpl->db;
+    auto const tab_snapshot_contents = blimpdb::SnapshotContents{};
+    auto const tab_file_elements = blimpdb::FileElements{};
+    auto const tab_indexed_locations = blimpdb::IndexedLocations{};
+
+    auto q = select(tab_indexed_locations.path, tab_file_elements.fileSize, tab_file_elements.modifiedDate).from(
+        tab_indexed_locations.inner_join(tab_file_elements).on(tab_indexed_locations.locationId == tab_file_elements.locationId)
+                             .inner_join(tab_snapshot_contents).on(tab_file_elements.fileId == tab_snapshot_contents.fileId))
+        .where(tab_snapshot_contents.snapshotId == snapshot_id.i);
+    
+    std::vector<FileInfo> ret;
+    for (auto const& r : db(q)) {
+        std::string const path_str = r.path;
+        boost::filesystem::path const p = path_str;
+        std::uint64_t const s = r.fileSize;
+        auto const date = std::chrono::system_clock::time_point{ r.modifiedDate.value() };;
+        ret.push_back(FileInfo{ .path = p, .size = s, .modified_time = date });
+    }
+    return ret;
+}
+
 void BlimpDB::startExternalSync()
 {
     m_pimpl->db.execute("PRAGMA synchronous = OFF");

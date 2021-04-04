@@ -25,6 +25,7 @@ public:
 public slots:
     void onNewDatabase();
     void onOpenDatabase();
+    void onNewSnapshot();
     void onStartFileScan();
     void onCancelFileScan();
     void onFileScanIndexingUpdate(std::uint64_t n_files);
