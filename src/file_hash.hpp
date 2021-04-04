@@ -13,6 +13,7 @@ enum class HashType
 
 struct Hash {
     std::array<std::uint8_t, 32> digest;
+    static Hash from_string(std::string const& str);
 };
 
 class FileChunk;

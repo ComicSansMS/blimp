@@ -279,3 +279,7 @@ StorageContainerLocation ProcessingPipeline::getLastContainerLocation() const
 {
     return m_lastContainerLocation;
 }
+
+void ProcessingPipeline::retrieveFile(std::vector<StorageLocation> const& locations, Hash const& file_hash)
+{
+}

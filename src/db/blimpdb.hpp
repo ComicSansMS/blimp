@@ -1,6 +1,8 @@
 #ifndef BLIMP_INCLUDE_GUARD_DB_BLIMPDB_HPP
 #define BLIMP_INCLUDE_GUARD_DB_BLIMPDB_HPP
 
+#include <db/file_element_id.hpp>
+
 #include <file_info.hpp>
 #include <storage_container.hpp>
 #include <storage_location.hpp>
@@ -38,10 +40,6 @@ public:
         int64_t i;
     };
 
-    struct FileElementId {
-        int64_t i;
-    };
-
     struct FileContentId {
         int64_t i;
     };
@@ -60,6 +58,16 @@ public:
     struct PluginStoreValue {
         std::vector<char> data;
         BlimpKeyValueStoreValue value;
+    };
+
+    struct FileElement {
+        FileElementId id;
+        FileInfo info;
+    };
+
+    struct StorageElement {
+        StorageContainer container;
+        StorageLocation location;
     };
 private:
     struct Pimpl;
@@ -103,7 +111,13 @@ public:
     void pluginStoreValue(BlimpPluginInfo const& plugin, char const* key, BlimpKeyValueStoreValue value);
     PluginStoreValue pluginRetrieveValue(BlimpPluginInfo const& plugin, char const* key);
 
-    std::vector<FileInfo> getFileElementsForSnapshot(SnapshotId const& snapshot_id);
+    std::vector<FileElement> getFileElementsForSnapshot(SnapshotId const& snapshot_id);
+
+    std::vector<StorageElement> getFileStorageInfo(FileElementId const& file_id);
+
+    std::optional<Hash> getFileHash(FileElementId const& file_id);
+
+    std::optional<FileInfo> getFileInfo(FileElementId const& file_id);
 
     void startExternalSync();
     void commitExternalSync();

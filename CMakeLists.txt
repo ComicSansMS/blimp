@@ -100,6 +100,7 @@ set(BLIMP_HEADER_FILES
     ${BLIMP_SOURCE_DIRECTORY}/version.hpp
     ${BLIMP_SOURCE_DIRECTORY}/worker_pool.hpp
     ${BLIMP_SOURCE_DIRECTORY}/db/blimpdb.hpp
+    ${BLIMP_SOURCE_DIRECTORY}/db/file_element_id.hpp
 )
 
 set(BLIMP_TABLE_HEADER_FILES

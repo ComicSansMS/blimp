@@ -1,6 +1,7 @@
 #ifndef BLIMP_INCLUDE_GUARD_UI_SNAPSHOT_CONTENTS_MODEL_HPP
 #define BLIMP_INCLUDE_GUARD_UI_SNAPSHOT_CONTENTS_MODEL_HPP
 
+#include <db/blimpdb.hpp>
 #include <file_info.hpp>
 
 #include <QAbstractItemModel>
@@ -15,7 +16,7 @@ class SnapshotContentsModel : public QAbstractItemModel {
 public:
     struct SnapshotContentItem {
         QString path;
-        std::optional<FileInfo> finfo;
+        std::optional<BlimpDB::FileElement> file_element;
         std::vector<std::size_t> children;
         std::size_t index;
         std::size_t parent_index;
@@ -42,7 +43,7 @@ public:
     void clear();
     SnapshotContentItem& newItem(SnapshotContentItem& parent, QString const& p);
     SnapshotContentItem& getItemByIndex(std::size_t index);
-    void addItem(FileInfo const finfo);
+    void addItem(BlimpDB::FileElement const finfo);
     void finalize();
 };
 

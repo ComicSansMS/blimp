@@ -14,7 +14,7 @@ SnapshotContentsModel::SnapshotContentsModel(QObject* parent)
 void SnapshotContentsModel::clear()
 {
     m_items.clear();
-    m_items.push_back(SnapshotContentItem{ .path = {}, .finfo = std::nullopt, .children = {},
+    m_items.push_back(SnapshotContentItem{ .path = {}, .file_element = std::nullopt, .children = {},
                                            .index = 0, .parent_index = 0, .row = 0 });
 }
 
@@ -38,10 +38,10 @@ SnapshotContentsModel::SnapshotContentItem& SnapshotContentsModel::getItemByInde
     return m_items[index];
 }
 
-void SnapshotContentsModel::addItem(FileInfo const finfo)
+void SnapshotContentsModel::addItem(BlimpDB::FileElement const file_element)
 {
     std::size_t n = 0;
-    for (auto const& p : finfo.path) {
+    for (auto const& p : file_element.info.path) {
         auto const p_str = QString::fromStdString(p.generic_string());
         auto const it_child = std::find_if(begin(m_items[n].children), end(m_items[n].children),
                                            [this, &p_str](std::size_t idx) { return m_items[idx].path == p_str; });
@@ -51,14 +51,14 @@ void SnapshotContentsModel::addItem(FileInfo const finfo)
             n = newItem(m_items[n], p_str).index;
         }
     }
-    m_items[n].finfo = finfo;
+    m_items[n].file_element = file_element;
 }
 
 void SnapshotContentsModel::finalize()
 {
     for (auto& i : m_items) {
         if ((i.index == 0) || (i.parent_index == 0)) { continue; }
-        if (!i.finfo) {
+        if (!i.file_element) {
             SnapshotContentItem& parent = m_items[i.parent_index];
             if (parent.children.size() == 1) {
                 parent.children = i.children;
@@ -170,11 +170,11 @@ QVariant SnapshotContentsModel::data(QModelIndex const& index, int role) const
         auto const timep_t = std::chrono::system_clock::to_time_t(timep);
         return QString(QDateTime::fromTime_t(timep_t, Qt::UTC).toLocalTime().toString(time_format_str));
     };
-    if (item->finfo) {
+    if (item->file_element) {
         if (col == 1) {
-            return date_to_string(item->finfo->modified_time);
+            return date_to_string(item->file_element->info.modified_time);
         } else if (col == 2) {
-            return item->finfo->size;
+            return item->file_element->info.size;
         }
     }
     return {};

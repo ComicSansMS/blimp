@@ -3,6 +3,7 @@
 #include <file_chunk.hpp>
 
 #include <gbBase/Assert.hpp>
+#include <gbBase/Exception.hpp>
 
 #include <hex.h>
 #include <sha.h>
@@ -79,4 +80,19 @@ std::string to_string(Hash const& hash)
     auto const res = enc.Get(reinterpret_cast<CryptoPP::byte*>(buffer.data() + 7), 2*hash.digest.size());
     GHULBUS_ASSERT(res == 2*hash.digest.size());
     return std::string(begin(buffer), end(buffer));
+}
+
+Hash Hash::from_string(std::string const& str)
+{
+    if (!str.starts_with("SHA256:")) {
+        GHULBUS_THROW(Ghulbus::Exceptions::IOError{}, "Unable to parse Hash from string");
+    }
+    CryptoPP::HexDecoder dec;
+    dec.Put(reinterpret_cast<CryptoPP::byte const*>(str.c_str() + 7), str.length() - 7);
+    Hash ret;
+    auto const res = dec.Get(reinterpret_cast<CryptoPP::byte*>(&ret.digest), ret.digest.size());
+    if (res != ret.digest.size()) {
+        GHULBUS_THROW(Ghulbus::Exceptions::IOError{}, "Unable to parse Hash from string");
+    }
+    return ret;
 }

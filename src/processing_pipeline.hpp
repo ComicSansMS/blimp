@@ -93,6 +93,8 @@ public:
 
     StorageContainerLocation getLastContainerLocation() const;
 
+    void retrieveFile(std::vector<StorageLocation> const& locations, Hash const& file_hash);
+
 private:
     ContainerStatus addFileChunk(FileChunk const& chunk);
 };

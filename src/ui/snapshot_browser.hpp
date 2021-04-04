@@ -1,6 +1,8 @@
 #ifndef BLIMP_INCLUDE_GUARD_UI_SNAPSHOT_BROWSER_HPP
 #define BLIMP_INCLUDE_GUARD_UI_SNAPSHOT_BROWSER_HPP
 
+#include <db/file_element_id.hpp>
+
 #include <QWidget>
 
 class BlimpDB;
@@ -21,6 +23,11 @@ public:
     SnapshotBrowser(QWidget* parent);
 
     void setData(BlimpDB& blimpdb);
+
+signals:
+    void fileRetrievalRequest(FileElementId);
+private slots:
+    void onItemDoubleClicked(QModelIndex const& idx);
 };
 
 #endif

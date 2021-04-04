@@ -51,6 +51,8 @@ public:
     void cancelProcessing();
     [[nodiscard]] std::unique_ptr<BlimpDB> joinProcessing();
 
+    void retrieveFile(boost::filesystem::path to, FileInfo const& file_info, Hash const& file_hash,
+                      std::vector<BlimpDB::StorageElement> const& storage_elements);
 signals:
     void processingUpdateNewFile(std::uint64_t current_file_indexed, std::uint64_t current_file_size);
     void processingUpdateHashProgress(std::uint64_t current_file_bytes_processed);

@@ -38,7 +38,7 @@ void FileProcessor::startProcessing(BlimpDB::SnapshotId snapshot_id, std::vector
         FileHasher hasher(HashType::SHA_256);
         WorkerPool pool(1);
         std::size_t file_index = 0;
-        std::vector<BlimpDB::FileElementId> snapshot_contents;
+        std::vector<FileElementId> snapshot_contents;
         blimpdb.startExternalSync();
         StorageContainerId current_container = blimpdb.newStorageContainer();
         m_processingPipeline->newStorageContainer(current_container);
@@ -123,4 +123,10 @@ std::unique_ptr<BlimpDB> FileProcessor::joinProcessing()
     std::unique_ptr<BlimpDB> ret;
     swap(ret, m_dbReturnChannel);
     return ret;
+}
+
+void FileProcessor::retrieveFile(boost::filesystem::path to, FileInfo const& file_info, Hash const& file_hash,
+                                 std::vector<BlimpDB::StorageElement> const& storage_elements)
+{
+    
 }

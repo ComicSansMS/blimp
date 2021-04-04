@@ -1,7 +1,7 @@
 #include <ui/snapshot_browser.hpp>
 
-#include <db/blimpdb.hpp>
 #include <ui/snapshot_contents_model.hpp>
+#include <db/blimpdb.hpp>
 
 #include <QBoxLayout>
 #include <QComboBox>
@@ -25,6 +25,8 @@ SnapshotBrowser::SnapshotBrowser(QWidget* parent)
     m_layout->addWidget(m_comboSnapshotList);
     m_treeView->setModel(m_model);
     m_layout->addWidget(m_treeView);
+
+    connect(m_treeView, &QTreeView::doubleClicked, this, &SnapshotBrowser::onItemDoubleClicked);
 }
 
 void SnapshotBrowser::setData(BlimpDB& blimpdb)
@@ -42,8 +44,16 @@ void SnapshotBrowser::setData(BlimpDB& blimpdb)
     }
 
     m_model->clear();
-    auto const file_infos = blimpdb.getFileElementsForSnapshot(snapshots.front().id);
-    for (auto const& f : file_infos) { m_model->addItem(f); }
+    auto const file_elements = blimpdb.getFileElementsForSnapshot(snapshots.front().id);
+    for (auto const& f : file_elements) { m_model->addItem(f); }
     m_model->finalize();
+}
+
+void SnapshotBrowser::onItemDoubleClicked(QModelIndex const& idx)
+{
+    auto const* item = static_cast<SnapshotContentsModel::SnapshotContentItem*>(idx.internalPointer());
+    if (item->file_element) {
+        emit fileRetrievalRequest(item->file_element->id);
+    }
 }
 

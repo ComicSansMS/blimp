@@ -365,7 +365,7 @@ BlimpDB::SnapshotId BlimpDB::addSnapshot(std::string const& name)
     return SnapshotId{ static_cast<int64_t>(r) };
 }
 
-std::tuple<BlimpDB::FileElementId, BlimpDB::FileContentId, BlimpDB::FileContentInsertion>
+std::tuple<FileElementId, BlimpDB::FileContentId, BlimpDB::FileContentInsertion>
     BlimpDB::newFileContent(FileInfo const& finfo, Hash const& hash, bool do_sync)
 {
     auto& db = m_pimpl->db;
@@ -394,7 +394,7 @@ std::tuple<BlimpDB::FileElementId, BlimpDB::FileContentId, BlimpDB::FileContentI
     return std::make_tuple(ret, content_id, content_insertion);
 }
 
-BlimpDB::FileElementId BlimpDB::newFileElement(FileInfo const& finfo, FileContentId const& content_id, bool do_sync)
+FileElementId BlimpDB::newFileElement(FileInfo const& finfo, FileContentId const& content_id, bool do_sync)
 {
     auto& db = m_pimpl->db;
     auto const tab_indexed_locations = blimpdb::IndexedLocations{};
@@ -536,27 +536,96 @@ BlimpDB::PluginStoreValue BlimpDB::pluginRetrieveValue(BlimpPluginInfo const& pl
     return ret;
 }
 
-std::vector<FileInfo> BlimpDB::getFileElementsForSnapshot(SnapshotId const& snapshot_id)
+std::vector<BlimpDB::FileElement> BlimpDB::getFileElementsForSnapshot(SnapshotId const& snapshot_id)
 {
     auto& db = m_pimpl->db;
     auto const tab_snapshot_contents = blimpdb::SnapshotContents{};
     auto const tab_file_elements = blimpdb::FileElements{};
     auto const tab_indexed_locations = blimpdb::IndexedLocations{};
 
-    auto q = select(tab_indexed_locations.path, tab_file_elements.fileSize, tab_file_elements.modifiedDate).from(
-        tab_indexed_locations.inner_join(tab_file_elements).on(tab_indexed_locations.locationId == tab_file_elements.locationId)
-                             .inner_join(tab_snapshot_contents).on(tab_file_elements.fileId == tab_snapshot_contents.fileId))
+    auto q = select(tab_indexed_locations.path, tab_file_elements.fileId, tab_file_elements.fileSize, tab_file_elements.modifiedDate)
+        .from(tab_indexed_locations
+              .inner_join(tab_file_elements).on(tab_indexed_locations.locationId == tab_file_elements.locationId)
+              .inner_join(tab_snapshot_contents).on(tab_file_elements.fileId == tab_snapshot_contents.fileId))
         .where(tab_snapshot_contents.snapshotId == snapshot_id.i);
-    
-    std::vector<FileInfo> ret;
+
+    std::vector<FileElement> ret;
     for (auto const& r : db(q)) {
         std::string const path_str = r.path;
         boost::filesystem::path const p = path_str;
         std::uint64_t const s = r.fileSize;
-        auto const date = std::chrono::system_clock::time_point{ r.modifiedDate.value() };;
-        ret.push_back(FileInfo{ .path = p, .size = s, .modified_time = date });
+        auto const date = std::chrono::system_clock::time_point{ r.modifiedDate.value() };
+        ret.push_back(FileElement{ .id = FileElementId{.i = r.fileId },
+                                   .info = FileInfo{.path = p, .size = s, .modified_time = date } });
     }
     return ret;
+}
+
+std::vector<BlimpDB::StorageElement> BlimpDB::getFileStorageInfo(FileElementId const& file_id)
+{
+    auto& db = m_pimpl->db;
+    auto const tab_file_elements = blimpdb::FileElements{};
+    auto const tab_storage_inventory = blimpdb::StorageInventory{};
+    auto const tab_storage_containers = blimpdb::StorageContainers{};
+    auto const q = select(tab_storage_inventory.containerId,
+                          tab_storage_inventory.offset,
+                          tab_storage_inventory.size,
+                          tab_storage_inventory.partNumber,
+                          tab_storage_containers.location)
+        .from(tab_file_elements
+              .inner_join(tab_storage_inventory).on(tab_storage_inventory.contentId == tab_file_elements.contentId)
+              .inner_join(tab_storage_containers).on(tab_storage_containers.containerId == tab_storage_inventory.containerId))
+        .where(tab_file_elements.fileId == file_id.i);
+    std::vector<StorageElement> ret;
+    for (auto const& r : db(q)) {
+        StorageElement se;
+        se.container.id.i = r.containerId;
+        se.container.location.l = r.location;
+        se.location.container_id.i = r.containerId;
+        se.location.offset = r.offset;
+        se.location.size = r.size;
+        se.location.part_number = r.partNumber;
+        ret.push_back(std::move(se));
+    }
+    std::sort(begin(ret), end(ret),
+              [](StorageElement const& lhs, StorageElement const& rhs)
+              {
+                  return lhs.location.part_number < rhs.location.part_number;
+              });
+    return ret;
+}
+
+std::optional<Hash> BlimpDB::getFileHash(FileElementId const& file_id)
+{
+    auto& db = m_pimpl->db;
+    auto const tab_file_elements = blimpdb::FileElements{};
+    auto const tab_file_contents = blimpdb::FileContents{};
+    auto const q = select(tab_file_contents.hash)
+        .from(tab_file_elements
+              .inner_join(tab_file_contents).on(tab_file_elements.contentId == tab_file_contents.contentId))
+        .where(tab_file_elements.fileId == file_id.i);
+    auto const res = db(q);
+    if (res.empty()) { return std::nullopt; }
+    return Hash::from_string(res.front().hash);
+}
+
+std::optional<FileInfo> BlimpDB::getFileInfo(FileElementId const& file_id)
+{
+    auto& db = m_pimpl->db;
+    auto const tab_file_elements = blimpdb::FileElements{};
+    auto const tab_indexed_location = blimpdb::IndexedLocations{};
+    auto const q = select(tab_indexed_location.path, tab_file_elements.fileSize, tab_file_elements.modifiedDate)
+        .from(tab_file_elements
+              .inner_join(tab_indexed_location).on(tab_file_elements.locationId == tab_indexed_location.locationId))
+        .where(tab_file_elements.fileId == file_id.i);
+    auto const res = db(q);
+    if (res.empty()) { return std::nullopt; }
+    auto const& r = res.front();
+    FileInfo finfo;
+    finfo.path = r.path.value();
+    finfo.size = r.fileSize;
+    finfo.modified_time = std::chrono::system_clock::time_point{ r.modifiedDate.value() };
+    return finfo;
 }
 
 void BlimpDB::startExternalSync()

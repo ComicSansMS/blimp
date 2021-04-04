@@ -8,6 +8,7 @@
 
 #include <db/blimpdb.hpp>
 
+#include <exceptions.hpp>
 #include <file_scanner.hpp>
 #include <file_processor.hpp>
 
@@ -333,6 +334,8 @@ MainWindow::MainWindow()
             this, &MainWindow::onProcessingCompleted, Qt::QueuedConnection);
     connect(&m_pimpl->fileProcessor, &FileProcessor::processingCanceled,
             this, &MainWindow::onProcessingCanceled, Qt::QueuedConnection);
+    connect(m_pimpl->snapshotBrowserPage.snapshotBrowser, &SnapshotBrowser::fileRetrievalRequest,
+            this, &MainWindow::onFileRetrievalRequested);
 
     show();
 }
@@ -612,4 +615,16 @@ void MainWindow::onFileScanChecksumCompleted()
 {
     m_pimpl->fileScanner.cancelScanning();
     m_pimpl->fileDiffPage.diffmodel->setFileIndexData(m_pimpl->fileScanner.getIndexList(), m_pimpl->fileScanner.getIndexDiff());
+}
+
+void MainWindow::onFileRetrievalRequested(FileElementId file_id)
+{
+    auto const storage_infos = m_pimpl->blimpdb->getFileStorageInfo(file_id);
+    auto const file_hash = m_pimpl->blimpdb->getFileHash(file_id);
+    auto const file_info = m_pimpl->blimpdb->getFileInfo(file_id);
+    if ((!file_hash) || (!file_info) || (storage_infos.empty())) {
+        GHULBUS_THROW(Exceptions::DatabaseError{}, "File not in database");
+    }
+    m_pimpl->fileProcessor.retrieveFile(boost::filesystem::path{"blimp_out_dir"} / file_info->path.filename(),
+                                        *file_info, *file_hash, storage_infos);
 }

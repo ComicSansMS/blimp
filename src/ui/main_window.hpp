@@ -1,6 +1,8 @@
 #ifndef BLIMP_INCLUDE_GUARD_UI_MAIN_WINDOW_HPP
 #define BLIMP_INCLUDE_GUARD_UI_MAIN_WINDOW_HPP
 
+#include <db/file_element_id.hpp>
+
 #include <QMainWindow>
 
 #include <cstdint>
@@ -43,7 +45,7 @@ public slots:
     void onCreateSnapshotCancel();
     void onCancelFileProcessing();
     void onProcessingCanceled();
-
+    void onFileRetrievalRequested(FileElementId file_id);
 
 };
 
